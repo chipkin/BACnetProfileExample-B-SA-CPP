@@ -561,6 +561,13 @@ bool SetPropertyReal(const uint32_t deviceInstance, const uint16_t objectType,
     Commandable* c = GetCommandable(objectType, objectInstance);
     if (c != NULL && objectType == OBJECT_TYPE_ANALOG_OUTPUT &&
         propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
+        // An Analog Output accepts any REAL here. A real device that models the
+        // optional Min_Pres_Value / Max_Pres_Value properties would reject an
+        // out-of-band value with value-out-of-range, exactly as the Binary and
+        // Multi-State Output setters below do for their fixed ranges:
+        //     if (value < g_min || value > g_max) {
+        //         *errorCode = ERROR_CODE_VALUE_OUT_OF_RANGE; return false;
+        //     }
         CommandWrite(c, priority, (double)value);
         printf("WriteProperty: Analog Output 1 (Chartreuse) <- %.2f @ priority %u\n",
                value, EffectivePriority(priority));
@@ -577,13 +584,19 @@ bool SetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectT
                            uint32_t* errorCode) {
     (void)useArrayIndex;
     (void)propertyArrayIndex;
-    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
     Commandable* c = GetCommandable(objectType, objectInstance);
     if (c != NULL && objectType == OBJECT_TYPE_BINARY_OUTPUT &&
         propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
+        // A Binary Output's Present_Value is 0 (inactive) or 1 (active). Reject
+        // anything else with value-out-of-range - validating the written value is
+        // part of being a conformant DS-WP-B device.
+        if (value > 1) {
+            *errorCode = ERROR_CODE_VALUE_OUT_OF_RANGE;
+            return false;
+        }
         CommandWrite(c, priority, (double)value);
         printf("WriteProperty: Binary Output 1 (Fuchsia) <- %s @ priority %u\n",
                value ? "active" : "inactive", EffectivePriority(priority));
@@ -600,13 +613,18 @@ bool SetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t ob
                                 uint32_t* errorCode) {
     (void)useArrayIndex;
     (void)propertyArrayIndex;
-    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
     Commandable* c = GetCommandable(objectType, objectInstance);
     if (c != NULL && objectType == OBJECT_TYPE_MULTI_STATE_OUTPUT &&
         propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
+        // A Multi-State Output's Present_Value is a state number in 1..Number_Of_States.
+        // Reject anything outside that range with value-out-of-range.
+        if (value < 1 || value > MULTI_STATE_OUTPUT_NUMBER_OF_STATES) {
+            *errorCode = ERROR_CODE_VALUE_OUT_OF_RANGE;
+            return false;
+        }
         CommandWrite(c, priority, (double)value);
         printf("WriteProperty: Multi-State Output 1 (Indigo) <- state %u @ priority %u\n",
                value, EffectivePriority(priority));

@@ -80,6 +80,12 @@ static const uint32_t BACNET_IP_MODE_NORMAL = 0;
 static const uint32_t SERVICE_READ_PROPERTY = 12;
 static const uint32_t SERVICE_WRITE_PROPERTY = 15;
 
+// -- BACnet error codes (Error_Code enumeration) ----------------------------
+//    Full list: submodules/cas-bacnet-stack/source/BACnetErrorCode.h
+//    A SetProperty* callback writes one of these to its errorCode out-parameter
+//    and returns false to reject a write with that BACnet Error-PDU.
+static const uint32_t ERROR_CODE_VALUE_OUT_OF_RANGE = 37;
+
 // -- Transport network type (BACnetPacket::NetworkType, for the send/receive
 //    callbacks and SendIAm).
 //    Full list: submodules/cas-bacnet-stack/source/BACnetPacket.h

@@ -32,7 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Who-Is / I-Am** discovery; an unsolicited I-Am is broadcast to the local
   subnet on start-up.
 - WriteProperty of a value commands a priority slot; WriteProperty of NULL
-  relinquishes it. Writes to read-only input objects are correctly rejected.
+  relinquishes it. Writes to read-only input objects are rejected, and writes
+  outside an output's valid range (Binary Output != 0/1, Multi-State Output state
+  outside 1..Number_Of_States) are rejected with `value-out-of-range`.
 - All **required properties for Protocol_Revision 24** across every object.
 - Interactive keys: `h` help, `q` quit, up/down nudge Analog Input 1 by +/-1.1.
 - Command-line options: `--port <n>` and `--deviceID <n>`.
