@@ -7,8 +7,9 @@ It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests,
 accepts **WriteProperty** to its commandable outputs, and is discoverable via
 **Who-Is / I-Am**.
 
-> **Versions:** this document describes **example v1.0.0**, built and verified
-> against **CAS BACnet Stack 5.4.2.0** at **Protocol_Revision 24**.
+> **Versions:** this document describes **example v1.0.0**, built against
+> **CAS BACnet Stack v6.x.x** at **Protocol_Revision 24**. (Note: v6.x.x
+> is under active development; the exact linked build is printed at start-up.)
 
 This is the second example in the series. It builds directly on the
 [B-SS (Smart Sensor)](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP)
@@ -226,7 +227,7 @@ Expected output:
 
 ```
 BACnet B-SA (Smart Actuator) Example - C++ v1.0.0
-CAS BACnet Stack version: 5.4.2.0
+CAS BACnet Stack version: <the linked build, printed at start-up>
 FYI: Listening for BACnet/IP on UDP port 47808.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
 FYI: Device 389001 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
@@ -258,11 +259,21 @@ the series):
 |-----|--------|
 | `h` | Show the version information and this command list. |
 | `q` | Quit. |
-| up arrow | Increase Analog Input 1 (`Bronze`) by 1.1. |
-| down arrow | Decrease Analog Input 1 (`Bronze`) by 1.1. |
+| `e` | Enter **edit mode** to change a sensor input's live value. |
 
-The up/down keys change the live `Present_Value` of the analog input, so a client
-re-reading it sees the new value.
+In **edit mode** you pick which input to change and adjust it:
+
+| Key | Action |
+|-----|--------|
+| number | Select an object (Analog Input 1, Binary Input 1, or Multi-State Input 1). |
+| up / down arrow | Change the selected value (nudge the analog, step the multi-state). |
+| space | Toggle a binary input, or step to the next multi-state value. |
+| `esc` | Leave edit mode. |
+
+Editing changes the live `Present_Value` of the selected **input**, so a client
+re-reading it sees the new value. Only the three read-only inputs are editable;
+the commandable **outputs** are driven by `WriteProperty` from a client (their
+`Present_Value` comes from the `Priority_Array`), not from the keyboard.
 
 ## Verify
 
