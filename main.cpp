@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: CC0-1.0
+﻿// SPDX-License-Identifier: CC0-1.0
 // Public-domain example code (CC0) - see LICENSE. The CAS BACnet Stack itself is
 // a separate, commercially licensed product and is not covered by CC0.
 // =============================================================================
@@ -257,7 +257,10 @@ bool GetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectT
     if (objectType == OBJECT_TYPE_BINARY_INPUT &&
         objectInstance == BINARY_INPUT_INSTANCE) {
         if (propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
-            *value = 1; // active
+            // ON REAL HARDWARE: return your cached input state here - the same rule
+            // as GetPropertyReal above applies (never block this callback on slow
+            // I/O; sample on a timer/another thread and hand back the latest).
+            *value = 0; // inactive - the series-wide starting value
             return true;
         }
         if (propertyIdentifier == PROPERTY_IDENTIFIER_POLARITY) {
@@ -775,8 +778,11 @@ int main(int argc, char** argv) {
     // already enabled; our Get* callbacks just supply their values. Only
     // OPTIONAL properties need SetPropertyEnabled. State_Text is optional on a
     // Multi-State Input, so we enable it here (and serve it in GetPropertyCharString).
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT,
-                                   MULTI_STATE_INPUT_INSTANCE, PROPERTY_IDENTIFIER_STATE_TEXT, true);
+    if (!BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT,
+                                        MULTI_STATE_INPUT_INSTANCE, PROPERTY_IDENTIFIER_STATE_TEXT, true)) {
+        printf("Error: Failed to enable State_Text on Multi-State Input 1 (Hot Pink).\n");
+        return 1;
+    }
 
     // --- Make the output objects commandable --------------------------------
     // A commandable object's Present_Value is resolved from a 16-slot
@@ -787,16 +793,25 @@ int main(int argc, char** argv) {
     // Relinquish_Default are all required properties, so the stack already
     // *enabled* them on AddObject; here we additionally mark Present_Value
     // writable, which is what flips the object into commandable mode.)
+    //
+    // Check every one of these. SetPropertyWritable(Present_Value) is the call
+    // that turns an output into a commandable object - if it silently fails, the
+    // device still starts, still answers Who-Is, and looks perfectly healthy while
+    // rejecting every WriteProperty. That is the worst kind of failure to debug,
+    // and it is exactly what an unchecked return buys you.
     const uint16_t outputTypes[] = {
         OBJECT_TYPE_ANALOG_OUTPUT, OBJECT_TYPE_BINARY_OUTPUT, OBJECT_TYPE_MULTI_STATE_OUTPUT
     };
     for (size_t i = 0; i < sizeof(outputTypes) / sizeof(outputTypes[0]); ++i) {
-        BACnetStack_SetPropertyEnabled(g_deviceInstance, outputTypes[i], 1,
-                                       PROPERTY_IDENTIFIER_PRIORITY_ARRAY, true);
-        BACnetStack_SetPropertyEnabled(g_deviceInstance, outputTypes[i], 1,
-                                       PROPERTY_IDENTIFIER_RELINQUISH_DEFAULT, true);
-        BACnetStack_SetPropertyWritable(g_deviceInstance, outputTypes[i], 1,
-                                        PROPERTY_IDENTIFIER_PRESENT_VALUE, true);
+        if (!BACnetStack_SetPropertyEnabled(g_deviceInstance, outputTypes[i], 1,
+                                            PROPERTY_IDENTIFIER_PRIORITY_ARRAY, true) ||
+            !BACnetStack_SetPropertyEnabled(g_deviceInstance, outputTypes[i], 1,
+                                            PROPERTY_IDENTIFIER_RELINQUISH_DEFAULT, true) ||
+            !BACnetStack_SetPropertyWritable(g_deviceInstance, outputTypes[i], 1,
+                                             PROPERTY_IDENTIFIER_PRESENT_VALUE, true)) {
+            printf("Error: Failed to make object type %u instance 1 commandable.\n", outputTypes[i]);
+            return 1;
+        }
     }
 
     // Who-Is is answered automatically. The spec also requires a device to
