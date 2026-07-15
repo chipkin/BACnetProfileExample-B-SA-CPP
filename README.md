@@ -7,8 +7,8 @@ It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests,
 accepts **WriteProperty** to its commandable outputs, and is discoverable via
 **Who-Is / I-Am**.
 
-> **Versions:** this document describes **example v1.0.0**, built and verified
-> against **CAS BACnet Stack 5.4.2.0** at **Protocol_Revision 24**.
+> **Versions:** this document describes **example v1.1.0**, built and verified
+> against **CAS BACnet Stack 6.0.0.0** (the `6.x` branch) at **Protocol_Revision 24**, with `common/` helper **v1.1.0**.
 
 This is the second example in the series. It builds directly on the
 [B-SS (Smart Sensor)](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP)
@@ -72,7 +72,7 @@ hand control back by writing NULL. The application just stores the array (see th
 ## The device this example creates
 
 ```
-Device 389001  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
+Device 389002  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     │
     ├── Analog Input  1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius; read-only)
     ├── Binary Input  1       "Emerald"     Present_Value  active  (0 = inactive / 1 = active; read-only)
@@ -118,7 +118,7 @@ Smart Actuator)** profile; because they also cover the baseline required by
 
 | Object type | Instance | Name | Access |
 |-------------|:--------:|------|--------|
-| Device | 389001 | Rainbow | - |
+| Device | 389002 | Rainbow | - |
 | Analog Input | 1 | Bronze | read-only |
 | Binary Input | 1 | Emerald | read-only |
 | Multi-State Input | 1 | Hot Pink | read-only |
@@ -225,11 +225,12 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SA (Smart Actuator) Example - C++ v1.0.0
-CAS BACnet Stack version: 5.4.2.0
+BACnet B-SA (Smart Actuator) Example - C++ v1.1.0
+CAS BACnet Stack version: 6.0.0.0
+Common helper (common/) version: 1.1.0
 FYI: Listening for BACnet/IP on UDP port 47808.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
-FYI: Device 389001 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
+FYI: Device 389002 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
 ```
 
 The `TX` line is the start-up I-Am the device broadcasts to announce itself. It
@@ -247,7 +248,7 @@ firewall. To use a different port, pass `--port` (see below).
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `--port <n>` | `47808` | UDP port to listen on (BACnet/IP). |
-| `--deviceID <n>` | `389001` | The device's BACnet instance number (BACnet requires this to be configurable). |
+| `--deviceID <n>` | `389002` | The device's BACnet instance number (BACnet requires this to be configurable). |
 
 ### Interactive commands
 
@@ -270,11 +271,11 @@ Use a BACnet client such as the
 [**CAS BACnet Explorer**](https://store.chipkin.com/products/tools/cas-bacnet-explorer):
 
 1. **Discover** - send a **Who-Is**. The device replies with **I-Am** from
-   instance **389001** (vendor **389**). It also broadcasts an I-Am at start-up.
+   instance **389002** (vendor **389**). It also broadcasts an I-Am at start-up.
 2. **Browse the object model** - the device shows seven objects: the Device
    (`Rainbow`), three inputs, three outputs, and the Network Port (`Vermilion`).
    Reading the Device's `Object_List` returns all seven.
-3. **Read the Device** - ReadProperty `389001` -> `Object_Name` returns
+3. **Read the Device** - ReadProperty `389002` -> `Object_Name` returns
    `"Rainbow"`; `Protocol_Revision` returns `24`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns

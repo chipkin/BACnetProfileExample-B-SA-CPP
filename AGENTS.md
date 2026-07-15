@@ -38,8 +38,8 @@ lives outside the bundled submodule.
 ## Run
 
 ```bash
-./build/BACnetExampleBSA [--port 47808] [--deviceID 389001]   # Linux/macOS
-.\build\Release\BACnetExampleBSA.exe [--port 47808] [--deviceID 389001]   # Windows
+./build/BACnetExampleBSA [--port 47808] [--deviceID 389002]   # Linux/macOS
+.\build\Release\BACnetExampleBSA.exe [--port 47808] [--deviceID 389002]   # Windows
 ```
 
 Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1.
@@ -55,8 +55,10 @@ Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1
   and `SetPropertyNull` (relinquish).
 - Match the surrounding code style: `const`-correct parameters, check every stack
   return value, keep `main.cpp` linear and well-commented.
-- Do **not** edit `../common` from this repo - it is shared across all examples
-  and has a single source of truth.
+- **Never edit `common/` in this repo alone** - it is a vendored copy shared by
+  every example in the series, with its own version (`COMMON_VERSION`) and
+  changelog (`common/CHANGELOG.md`). To change it: edit, bump the version, add
+  a changelog entry, then re-copy `common/` into every example repository.
 
 ## How to verify a change
 

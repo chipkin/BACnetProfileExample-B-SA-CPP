@@ -19,8 +19,11 @@
 //   * Reading the common keyboard commands (h / q / arrow up / arrow down).
 //   * Sending an unsolicited I-Am on start-up.
 //
-// This file is generic and is copied verbatim into each example folder. Edit the
-// master copy in examples/common/ and re-copy it when releasing an example.
+// This folder is generic and is copied verbatim into each example repository.
+// It carries its own version (COMMON_VERSION below) and its own changelog
+// (common/CHANGELOG.md) so an example can tell whether its copy is stale.
+// To change it: edit it, bump COMMON_VERSION, record the change in
+// common/CHANGELOG.md, then re-copy common/ into EVERY example in the series.
 //
 // The CAS BACnet Stack itself is compiled into the program from source, so its
 // C API (CASBACnetStackDLL.h) is linked directly - there is no "load" step.
@@ -31,7 +34,14 @@
 namespace CASExampleHelper {
 
 // --- Version / help --------------------------------------------------------
-// Print the example's name + version and the linked CAS BACnet Stack version.
+// The version of the vendored common/ helper itself (NOT the example's
+// version). Bump it whenever anything in common/ changes, and record the
+// change in common/CHANGELOG.md - every example in the series must then be
+// re-synced to the same common/ version.
+static const char* COMMON_VERSION = "1.1.0";
+
+// Print the example's name + version, the linked CAS BACnet Stack version,
+// and the common/ helper version.
 void PrintVersion(const char* appName, const char* appVersion);
 
 // Print the version information plus the list of interactive key commands.

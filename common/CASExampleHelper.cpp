@@ -228,6 +228,9 @@ void PrintVersion(const char* appName, const char* appVersion) {
     printf("CAS BACnet Stack version: %u.%u.%u.%u\n",
            BACnetStack_GetAPIMajorVersion(), BACnetStack_GetAPIMinorVersion(),
            BACnetStack_GetAPIPatchVersion(), BACnetStack_GetAPIBuildVersion());
+    // The vendored common/ helper has its own version (see common/CHANGELOG.md)
+    // so it is easy to tell whether this example's copy is stale.
+    printf("Common helper (common/) version: %s\n", COMMON_VERSION);
 }
 
 void PrintHelp(const char* appName, const char* appVersion) {

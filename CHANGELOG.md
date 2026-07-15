@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-14
+
+### Changed
+
+- **Default device instance is now `389002`** (was `389001`), per the series'
+  new device-instance table: each profile example has its own default so
+  several examples can run on one subnet at once. Override with `--deviceID`.
+- **CAS BACnet Stack pinned to the head of the `6.x` branch** (`14676437`).
+  The previous pin was on a pre-6.x lineage; this brings ~248 commits of stack
+  fixes and features. All examples in the series pin the same stack commit.
+- `common/` updated to **v1.1.0**: the vendored helper now carries its own
+  version (`COMMON_VERSION`, printed at start-up) and its own changelog
+  (`common/CHANGELOG.md`); the helper files are byte-identical with the rest
+  of the series again.
+
 ## [1.0.0] - 2026-06-16
 
 ### Added
