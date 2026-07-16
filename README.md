@@ -7,8 +7,12 @@ It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests,
 accepts **WriteProperty** to its commandable outputs, and is discoverable via
 **Who-Is / I-Am**.
 
+Part of the CAS BACnet Stack **BACnet profile example series** - one repository
+per BACnet device profile. This example claims **only** B-SA.
+
 > **Versions:** this document describes **example v1.1.0**, built and verified
-> against **CAS BACnet Stack 6.0.0.0** (the `6.x` branch) at **Protocol_Revision 24**, with `common/` helper **v1.1.0**.
+> against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
+> vendored `common/` helper at **v1.2.0**. Running the example prints all three.
 
 This is the second example in the series. It builds directly on the
 [B-SS (Smart Sensor)](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP)
@@ -75,7 +79,7 @@ hand control back by writing NULL. The application just stores the array (see th
 Device 389002  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     │
     ├── Analog Input  1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius; read-only)
-    ├── Binary Input  1       "Emerald"     Present_Value  active  (0 = inactive / 1 = active; read-only)
+    ├── Binary Input  1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active; read-only)
     ├── Multi-State Input 1   "Hot Pink"    Present_Value  1       (state, 1..3; read-only)
     ├── Analog Output 1       "Chartreuse"  Present_Value  20.0    (REAL setpoint; WRITABLE, commandable)
     ├── Binary Output 1       "Fuchsia"     Present_Value  inactive(0/1; WRITABLE, commandable)
@@ -139,8 +143,10 @@ BACnet Stack license and access to that repository.
 Chipkin:** <https://store.chipkin.com/services/stacks/bacnet-stack> or
 sales@chipkin.com.
 
-You can still read all of this example's source on GitHub to evaluate the
-approach and the amount of code involved.
+You do not need a stack licence to *read* this example. Every file outside
+submodules/ is CC0 public domain, so once you have access to this repository you
+can review the approach and the amount of code involved before you buy. The licence
+is what lets you *build* it - that is the part the stack submodule gates.
 
 ## What's in this repository
 
