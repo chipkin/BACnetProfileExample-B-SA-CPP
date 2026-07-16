@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   several examples can run on one subnet at once. Override with `--deviceID`.
 - **CAS BACnet Stack pinned to the head of the `6.x` branch** (`14676437`).
   The previous pin was on a pre-6.x lineage; this brings ~248 commits of stack
-  fixes and features. All examples in the series pin the same stack commit.
+  fixes and features. (The series is mid-migration to 6.x, so a few examples
+  still pin the 5.x line; see the runbook's pin table for the current split.)
 - `common/` is vendored at **v1.3.0** (see `common/CHANGELOG.md`): it carries its own
   version (`COMMON_VERSION`, printed at start-up) and its own changelog
   (`common/CHANGELOG.md`); the helper files are byte-identical with the rest

@@ -53,7 +53,7 @@ purpose: **alarming / event reporting**, **scheduling**, and **trending**.
 standard object model - a **Device** object, a **Network Port** object (every
 device needs one), and its objects - and each object must expose all of its
 **required properties**. The CAS BACnet Stack generates most of those
-automatically (Object_Identifier, Object_Type, Status_Flags, Event_State,
+automatically (Object_Identifier, Object_Type, Status_Flags,
 Object_List, Protocol_*, ...); this example supplies the handful that are
 application-specific. The result is conformant for **Protocol_Revision 24**.
 
@@ -85,7 +85,7 @@ Device 389002  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     ├── Binary Input  1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active; read-only)
     ├── Multi-State Input 1   "Hot Pink"    Present_Value  1       (state, 1..3; read-only)
     ├── Analog Output 1       "Chartreuse"  Present_Value  20.0    (REAL setpoint; WRITABLE, commandable)
-    ├── Binary Output 1       "Fuchsia"     Present_Value  inactive(0/1; WRITABLE, commandable)
+    ├── Binary Output 1       "Fuchsia"     Present_Value  inactive  (0/1; WRITABLE, commandable)
     ├── Multi-State Output 1  "Indigo"      Present_Value  1       (state, 1..3; WRITABLE, commandable)
     └── Network Port 1        "Vermilion"   the BACnet/IP port     (required on every device)
 ```
@@ -312,9 +312,9 @@ Use a BACnet client such as the
 
 1. **Discover** - send a **Who-Is**. The device replies with **I-Am** from
    instance **389002** (vendor **389**). It also broadcasts an I-Am at start-up.
-2. **Browse the object model** - the device shows seven objects: the Device
+2. **Browse the object model** - the device shows eight objects: the Device
    (`Rainbow`), three inputs, three outputs, and the Network Port (`Vermilion`).
-   Reading the Device's `Object_List` returns all seven.
+   Reading the Device's `Object_List` returns all eight.
 3. **Read the Device** - ReadProperty `389002` -> `Object_Name` returns
    `"Rainbow"`; `Protocol_Revision` returns `24`; `Description` returns the
    profile description string.
@@ -446,10 +446,16 @@ For Analog Input 1, the whole picture:
 | `Present_Value` | **you** | `GetPropertyReal` |
 | `Object_Name` | **you** | `GetPropertyCharString` |
 | `Units` | **you** | `GetPropertyEnumerated` |
-**Add a second analog output** - the edits mirror the existing one in `main.cpp`:
-add a new instance constant and `Commandable`, teach `GetCommandable` about it,
-`BACnetStack_AddObject` it in `main`, and enable its `Priority_Array` +
-`Relinquish_Default` + writable `Present_Value` in the commandable-setup loop.
+
+### Add a second commandable output
+
+The output path is the parallel of the input recipe above. To add, say, a second
+Analog Output, the edits mirror the existing one in `main.cpp`: add a new instance
+constant and a `Commandable` for it, teach `GetCommandable` about the new
+type+instance, `BACnetStack_AddObject` it in `main`, and enable its `Priority_Array`
++ `Relinquish_Default` + writable `Present_Value` in the commandable-setup loop.
+Then read back every required property and diff against the existing output, exactly
+as for the input recipe - the same silent-default trap applies.
 
 Going beyond read/write (COV, alarms, scheduling) means implementing a richer
 profile - a later example in this series.
