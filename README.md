@@ -15,7 +15,7 @@ start with; this is the **second**; [B-ASC](https://github.com/chipkin/BACnetPro
 
 > **Versions:** this document describes **example v1.1.0**, built and verified
 > against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
-> vendored `common/` helper at **v1.2.0**. Running the example prints all three.
+> vendored `common/` helper at **v1.3.0**. Running the example prints all three.
 
 This is the second example in the series. It builds directly on the
 [B-SS (Smart Sensor)](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP)
