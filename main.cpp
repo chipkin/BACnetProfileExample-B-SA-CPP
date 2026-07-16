@@ -145,6 +145,9 @@ struct Commandable {
     double relinquishDefault; // used when every slot is null
 };
 
+// The { { false }, { 0 }, default } initializer zero-fills all 16 slots of isSet
+// and value (C++ aggregate rules: the remaining elements are value-initialized),
+// so every priority slot starts null and Present_Value reports relinquishDefault.
 static Commandable g_analogOutput = { { false }, { 0 }, 20.0 }; // setpoint, default 20.0 C
 static Commandable g_binaryOutput = { { false }, { 0 }, 0.0 };  // default inactive (0)
 static Commandable g_multiStateOutput = { { false }, { 0 }, 1.0 }; // default state 1
@@ -798,30 +801,30 @@ int main(int argc, char** argv) {
     // Every stack setup call returns a bool; a real device should always check
     // it, so this example does too.
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_INSTANCE)) {
-        printf("Error: Failed to add Analog Input 1 (Bronze).\n");
+        printf("Error: Failed to add Analog Input %u (Bronze).\n", ANALOG_INPUT_INSTANCE);
         return 1;
     }
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_BINARY_INPUT, BINARY_INPUT_INSTANCE)) {
-        printf("Error: Failed to add Binary Input 1 (Emerald).\n");
+        printf("Error: Failed to add Binary Input %u (Emerald).\n", BINARY_INPUT_INSTANCE);
         return 1;
     }
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT, MULTI_STATE_INPUT_INSTANCE)) {
-        printf("Error: Failed to add Multi-State Input 1 (Hot Pink).\n");
+        printf("Error: Failed to add Multi-State Input %u (Hot Pink).\n", MULTI_STATE_INPUT_INSTANCE);
         return 1;
     }
 
     // --- Add the commandable OUTPUT objects (the B-SA additions) -------------
     // These accept WriteProperty. We make each one commandable below.
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_OUTPUT, ANALOG_OUTPUT_INSTANCE)) {
-        printf("Error: Failed to add Analog Output 1 (Chartreuse).\n");
+        printf("Error: Failed to add Analog Output %u (Chartreuse).\n", ANALOG_OUTPUT_INSTANCE);
         return 1;
     }
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_BINARY_OUTPUT, BINARY_OUTPUT_INSTANCE)) {
-        printf("Error: Failed to add Binary Output 1 (Fuchsia).\n");
+        printf("Error: Failed to add Binary Output %u (Fuchsia).\n", BINARY_OUTPUT_INSTANCE);
         return 1;
     }
     if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_OUTPUT, MULTI_STATE_OUTPUT_INSTANCE)) {
-        printf("Error: Failed to add Multi-State Output 1 (Indigo).\n");
+        printf("Error: Failed to add Multi-State Output %u (Indigo).\n", MULTI_STATE_OUTPUT_INSTANCE);
         return 1;
     }
 

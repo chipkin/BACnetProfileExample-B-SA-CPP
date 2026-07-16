@@ -100,8 +100,10 @@ colour-naming convention (Device is always "Rainbow").
 
 The example implements exactly the capabilities below - and nothing more, which
 is the point of a profile example. These capabilities satisfy the **B-SA (BACnet
-Smart Actuator)** profile; because they also cover the baseline required by
-**B-GENERAL**, this example satisfies the **B-GENERAL** profile as well.
+Smart Actuator)** profile; because this profile's BIBBs are a superset of the
+**B-GENERAL** baseline, a conformant device necessarily satisfies **B-GENERAL**
+too. That is subsumption, not a second claim: this repository still claims
+exactly one profile.
 
 ### BIBBs (BACnet Interoperability Building Blocks)
 
@@ -133,6 +135,33 @@ Smart Actuator)** profile; because they also cover the baseline required by
 | Binary Output | 1 | Fuchsia | writable (commandable) |
 | Multi-State Output | 1 | Indigo | writable (commandable) |
 | Network Port | 1 | Vermilion | - |
+
+## Before you ship
+
+This example is a tutorial, and it identifies itself as one. Everything in this
+table is read by clients and shown to the operator in **every discovery tool on
+the network**. Left as-is, your product appears on a real site announcing itself
+as a Chipkin demo. None of it is cosmetic.
+
+| Constant (`main.cpp`) | Ships as | Change it to |
+|---|---|---|
+| `VENDOR_IDENTIFIER` | `389` (Chipkin) | **Your** company's vendor ID. Assigned by ASHRAE, free: <https://bacnet.org/assigned-vendor-ids/> |
+| `VENDOR_NAME` | `Chipkin Automation Systems` | Your company name — must match the vendor ID above. |
+| `DEVICE_NAME` | `"Rainbow"` | Your device's `Object_Name`. **Must be unique across the BACnet internetwork** — see the note below. |
+| `MODEL_NAME` | `CAS BACnet Stack Example - B-SA` | Your model designation. This is what a building operator reads to identify your device. |
+| `DEVICE_DESCRIPTION` | a description of *this example* | What your device actually is. |
+| `FIRMWARE_REVISION` / `APPLICATION_SOFTWARE_VERSION` | `1.0.0` | Your real versions — wire them to your build. |
+| Device instance | `389002` (`--deviceID` overrides) | Must be unique on the internetwork. BACnet requires this to be configurable; keep it so. |
+
+> **`Object_Name` uniqueness is the one that will bite you.** The device instance
+> is runtime-configurable via `--deviceID`, but `DEVICE_NAME` is a compile-time
+> constant. Ship two units and configure their instances correctly, and **both
+> still announce `Object_Name "Rainbow"`** — a spec violation, and exactly the
+> uniqueness problem the code comments warn about. In a real product,
+> `Object_Name` must be per-unit configurable too (serial number, DIP switches,
+> a config file, or a `--deviceName` argument).
+
+`main.cpp` marks this block with a `CHANGE ALL OF THIS BEFORE YOU SHIP` banner.
 
 ## Requires the CAS BACnet Stack (licensed product)
 
@@ -333,7 +362,8 @@ that is easiest to miss is the one BTL will fail you for, and it fails SILENTLY.
 >
 > Falling through a callback does **not** reliably produce an error. The stack
 > errors only for the few properties it refuses to invent — `Present_Value`,
-> `Number_Of_States`, `Relinquish_Default`, `Local_Date`, `Local_Time`.
+> `Number_Of_States`, `Relinquish_Default`, `Local_Date`, `Local_Time`, and a
+> Network Port's `APDU_Length`.
 > For everything else it **silently substitutes a default**:
 >
 > | Property | If you forget to serve it | Loud? |
@@ -341,6 +371,11 @@ that is easiest to miss is the one BTL will fail you for, and it fails SILENTLY.
 > | `Present_Value` | Error (`value-not-initialized`) | yes |
 > | `Object_Name` | reads back as the string **`"undefined"`** | **no** |
 > | `Units` | reads back as **`no-units` (95)** | **no** |
+>
+>
+> It is worse than "wrong value": the object's `Property_List` **still advertises
+> `Units` (117)**. So the object actively claims to have the property, and then
+> answers with a default. Nothing on the wire says you forgot anything.
 >
 > So a half-added object looks **healthy**. Add two and both report
 > `Object_Name "undefined"` — duplicate object names inside one device, a spec
