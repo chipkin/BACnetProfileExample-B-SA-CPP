@@ -198,7 +198,7 @@ application (stack + example):
 
 | Platform | Binary | Size |
 |----------|--------|------|
-| Windows x64 (MSVC, Release) | `BACnetExampleBSA.exe` | ~2.6 MB |
+| Windows x64 (MSVC, Release) | `BACnetExampleBSA.exe` | ~2.9 MB |
 | Linux x64 (GCC, Release) | `BACnetExampleBSA` | ~6 MB unstripped (`strip` cuts it substantially) |
 
 These are whole-application sizes. The stack's flash/RAM footprint on a
@@ -245,7 +245,7 @@ cmake --build build --config Release
 ```
 
 > **First build takes a few minutes** - it compiles the entire CAS BACnet Stack
-> (~460 source files) once. Incremental rebuilds after that are fast.
+> (~600 source files) once. Incremental rebuilds after that are fast.
 
 If your CAS BACnet Stack lives somewhere other than the bundled submodule, point
 CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
@@ -265,7 +265,7 @@ Expected output:
 ```
 BACnet B-SA (Smart Actuator) Example - C++ v1.1.0
 CAS BACnet Stack version: 6.0.0.0
-Common helper (common/) version: 1.1.0
+Common helper (common/) version: 1.3.0
 FYI: Listening for BACnet/IP on UDP port 47808.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
 FYI: Device 389002 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
@@ -287,6 +287,8 @@ firewall. To use a different port, pass `--port` (see below).
 |--------|---------|---------|
 | `--port <n>` | `47808` | UDP port to listen on (BACnet/IP). |
 | `--deviceID <n>` | `389002` | The device's BACnet instance number (BACnet requires this to be configurable). |
+| `--help`, `-h` | - | Show usage and exit. |
+| `--version` | - | Print the example, stack, and `common/` helper versions, then exit. |
 
 ### Interactive commands
 
@@ -337,7 +339,7 @@ Use a BACnet client such as the
 | CMake error: *"CAS BACnet Stack source not found"* | Submodules not initialized. Run `git submodule update --init --recursive` (or pass `-D CAS_STACK_DIR=...`). |
 | `CASBACnetStackDLL.h: No such file or directory` | Same - submodules not checked out. |
 | Windows: *"No CMAKE_CXX_COMPILER could be found"* | Install Visual Studio with the "Desktop development with C++" workload, then re-run from a fresh terminal. |
-| First build seems stuck for minutes | Normal - it's compiling ~460 stack files. Only the first build is slow. |
+| First build seems stuck for minutes | Normal - it's compiling ~600 stack files. Only the first build is slow. |
 | App prints *"Failed to bind UDP port 47808"* | Another BACnet program is already using 47808. Stop it, or run with `--port <n>`. |
 | WriteProperty to an output is rejected | Write to the **output** objects (Analog/Binary/Multi-State Output), not the inputs. Inputs are read-only sensors by design. |
 | Client sends Who-Is but sees no I-Am | Firewall is blocking UDP 47808, or the client and device are on different subnets (Who-Is is a broadcast). Allow the port; test on the same subnet first. |
