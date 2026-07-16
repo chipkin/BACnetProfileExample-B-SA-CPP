@@ -319,6 +319,93 @@ The example is intentionally small so it's easy to change.
 the `Relinquish_Default` of an output in its `Commandable` initializer, or the
 `"Chartreuse"` string in `GetPropertyCharString`).
 
+**Add a second analog input.** Read this whole recipe before starting — the step
+that is easiest to miss is the one BTL will fail you for, and it fails SILENTLY.
+
+> **Why skipping a step is silent.** Most of the `GetProperty*` callbacks match
+> on **both** object type *and* instance (`objectInstance ==
+> ANALOG_INPUT_INSTANCE`), so a new instance falls through every one of them.
+> `GetPropertyBool` is the exception: it matches on type only, so
+> `Out_Of_Service` works for a new instance for free.
+>
+> Falling through a callback does **not** reliably produce an error. The stack
+> errors only for the few properties it refuses to invent — `Present_Value`,
+> `Number_Of_States`, `Relinquish_Default`, `Local_Date`, `Local_Time`.
+> For everything else it **silently substitutes a default**:
+>
+> | Property | If you forget to serve it | Loud? |
+> |---|---|:--:|
+> | `Present_Value` | Error (`value-not-initialized`) | yes |
+> | `Object_Name` | reads back as the string **`"undefined"`** | **no** |
+> | `Units` | reads back as **`no-units` (95)** | **no** |
+>
+> So a half-added object looks **healthy**. Add two and both report
+> `Object_Name "undefined"` — duplicate object names inside one device, a spec
+> violation and a hard BTL failure that every scan tool renders as fine.
+> **"It scanned OK" is the failure mode, not evidence against it.**
+
+`cpp
+// 1) a new instance number (in section 1).
+//    Naming: a second object of a type is "<Colour> 2" - so Analog Input 2 is
+//    "Bronze 2", NOT a new colour. Each object TYPE owns one colour series-wide.
+static const uint32_t ANALOG_INPUT_2_INSTANCE = 2;   // "Bronze 2"
+static float g_analogInput2Value = 23.1f;            // its live value
+
+// 2) add the object (in main, next to the other BACnetStack_AddObject calls).
+//    Check the return, like every other stack call in this file.
+if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_2_INSTANCE)) {
+    printf("Error: Failed to add Analog Input 2 (Bronze 2).\n");
+    return 1;
+}
+
+// 3) serve its Present_Value + Object_Name:
+//    GetPropertyReal:        AI/2 + Present_Value -> *value = g_analogInput2Value;
+//    GetPropertyCharString:  AI/2 + Object_Name   -> "Bronze 2"
+
+// 4) DO NOT SKIP: serve its Units, in GetPropertyEnumerated.
+//    Units is REQUIRED on an Analog Input. The existing check reads
+//    objectInstance == ANALOG_INPUT_INSTANCE, which is instance 1 - so without
+//    this, Analog Input 2's Units silently reads back no-units and the object is
+//    NON-CONFORMANT while looking perfectly healthy.
+//    GetPropertyEnumerated:  AI/2 + Units -> *value = ENGINEERING_UNITS_DEGREES_CELSIUS;
+`
+
+Then read back every required property of Analog Input 2 and **diff it against
+Analog Input 1**. Anything returning `"undefined"`, `no-units`, or `0` where
+object 1 returns something real is a step you missed.
+
+### What each object type needs you to serve
+
+| Object type | You must serve | Plus |
+|---|---|---|
+| Analog Input | `Present_Value` (Real), `Object_Name`, `Units` | — |
+| Binary Input | `Present_Value` (Enumerated), `Object_Name` | `Polarity` |
+| Multi-State Input | `Present_Value` (Unsigned), `Object_Name` | `Number_Of_States` |
+| Analog Output | `Object_Name`, `Units`, + the `Commandable` slots | `Priority_Array`, `Relinquish_Default` |
+| Binary Output | `Object_Name`, + the `Commandable` slots | `Polarity`, `Priority_Array`, `Relinquish_Default` |
+| Multi-State Output | `Object_Name`, + the `Commandable` slots | `Number_Of_States`, `Priority_Array`, `Relinquish_Default` |
+
+An **output**'s `Present_Value` is *not* served directly — the stack computes it
+from the `Priority_Array` slots your `GetPropertyBool`/typed getters return
+(see the `Commandable` struct). Add a new output instance to the `outputs[]`
+table in `main` and to `GetCommandable()`, or it will not be commandable.
+
+### Who serves what: the application or the stack?
+
+For Analog Input 1, the whole picture:
+
+| Property | Served by | How |
+|---|---|---|
+| `Object_Identifier` | **stack** | generated from the object you added |
+| `Object_Type` | **stack** | generated |
+| `Object_List` | **stack** | generated (Device object) |
+| `Property_List` | **stack** | generated |
+| `Status_Flags` | **stack** | generated |
+| `Event_State` | **stack**, sort of | no intrinsic alarming here, so nothing serves it — it reads `normal` only because `normal` is the enumeration's zero value and the stack substitutes a datatype default. Correct by coincidence, not design. |
+| `Out_Of_Service` | **you** | `GetPropertyBool` — matched on object **type only** |
+| `Present_Value` | **you** | `GetPropertyReal` |
+| `Object_Name` | **you** | `GetPropertyCharString` |
+| `Units` | **you** | `GetPropertyEnumerated` |
 **Add a second analog output** - the edits mirror the existing one in `main.cpp`:
 add a new instance constant and `Commandable`, teach `GetCommandable` about it,
 `BACnetStack_AddObject` it in `main`, and enable its `Priority_Array` +
