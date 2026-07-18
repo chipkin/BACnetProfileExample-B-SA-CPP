@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - unreleased
 
-## [1.1.0] - 2026-07-14
+> Not tagged yet: `v1.0.0` is the only tag in this repository. `release.yml` publishes binaries on a `v*.*.*`
+> tag, so until that tag exists this section describes what is on the
+> branch, not what shipped.
 
 ### Changed
 
@@ -16,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   several examples can run on one subnet at once. Override with `--deviceID`.
 - **CAS BACnet Stack pinned to the head of the `6.x` branch** (`14676437`).
   The previous pin was on a pre-6.x lineage; this brings ~248 commits of stack
-  fixes and features. All examples in the series pin the same stack commit.
-- `common/` updated to **v1.1.0**: the vendored helper now carries its own
+  fixes and features. (The series is mid-migration to 6.x, so a few examples
+  still pin the 5.x line; see the runbook's pin table for the current split.)
+- `common/` is vendored at **v1.3.0** (see `common/CHANGELOG.md`): it carries its own
   version (`COMMON_VERSION`, printed at start-up) and its own changelog
   (`common/CHANGELOG.md`); the helper files are byte-identical with the rest
   of the series again.
@@ -61,5 +64,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow that builds Windows + Linux and publishes a release on
   a `vX.Y.Z` tag, with a smoke-test step before packaging.
 
-[Unreleased]: https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/releases/tag/v1.0.0
