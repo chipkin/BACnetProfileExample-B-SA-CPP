@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Links the CAS BACnet Stack through the `CASBACnetStack::Adapter` CMake target
+  instead of compiling its `source/*.cpp` into this project directly.** `main.cpp`
+  and `common/CASExampleHelper.cpp` now include `CASBACnetStackAdapter.h` and call
+  `LoadBACnetFunctions()` once at the top of `main()`; **every `BACnetStack_*` call
+  site is unchanged** — the adapter exposes the same export names in every link
+  mode. `CAS_BACNET_STACK_LINK` (`SOURCE` default, or `STATIC`/`DLL`) now picks the
+  link mode, so switching is a CMake flag rather than a code change. See the
+  README's new "Link modes" section.
+  - Stack pinned to `6.x-TestTool` @ `756371c1`, which carries the adapter
+    (cas-bacnet-stack PRs #267 and #268).
+  - `common/` bumped to **v1.5.1** (see `common/CHANGELOG.md`). The
+    `LoadBACnetFunctions()` requirement is a contract change shared by every
+    example in the series.
+  - Release CI now passes `-DCAS_BACNET_STACK_LINK=SOURCE` **explicitly** and
+    asserts it back out of `CMakeCache.txt`, so a published artifact stays a
+    single self-contained executable even if the CMake default ever moves.
+- **Documentation corrections** carried over from the B-ASC review: the version
+  banner and sample output now match the shipped `common/` version (they claimed
+  v1.3.0); the Troubleshooting table quoted a CMake error string that no longer
+  exists and blamed `SO_REUSEADDR` for a symptom that on Windows surfaces as a bind
+  failure (the socket asks for `SO_EXCLUSIVEADDRUSE`); added parallel-build
+  guidance for the ~600-file first compile.
+
+### Changed
+
 - **Default device instance is now `389002`** (was `389001`), per the series'
   new device-instance table: each profile example has its own default so
   several examples can run on one subnet at once. Override with `--deviceID`.
