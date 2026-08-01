@@ -54,7 +54,9 @@
 
 #include "CASExampleHelper.h"
 #include "CASBACnetStackExampleConstants.h"
-#include "CASBACnetStackDLL.h" // the CAS BACnet Stack C API (BACnetStack_*)
+#include "CASBACnetStackAdapter.h" // the CAS BACnet Stack C API (BACnetStack_*); call
+                                    // LoadBACnetFunctions() before any BACnetStack_* call -
+                                    // see the top of main() below.
 
 #include <stdio.h>
 #include <string.h>
@@ -211,14 +213,13 @@ static bool ReadPrioritySlot(const Commandable* c, uint32_t propertyIdentifier,
 // stack uses a separate callback. We return true (and fill *value) when we
 // recognise the (object, property) pair, and false otherwise.
 //
-// WHAT false ACTUALLY DOES - and this is the most important paragraph in the
-// file, because an earlier version of this comment got it backwards. Returning
-// false does NOT reliably produce a BACnet error. The stack only errors for the
-// handful of properties it refuses to invent (BACnetBusinessLogic.cpp: the
-// valueShouldBeInitialized switch) - Present_Value, Number_Of_States,
-// Relinquish_Default, Local_Date, Local_Time, and a Network Port's APDU_Length.
-// For EVERYTHING ELSE, a false return falls through to GetDefaultPropertyValue()
-// (BACnetDBDevice.cpp) and the stack SILENTLY SUBSTITUTES a default:
+// WHAT false ACTUALLY DOES - the most important paragraph in this file, and the
+// opposite of what most people assume. Returning false does NOT reliably produce
+// a BACnet error. The stack only errors for the handful of properties it refuses
+// to invent: Present_Value, Number_Of_States, Relinquish_Default, Local_Date,
+// Local_Time, and a Network Port's APDU_Length.
+// For EVERYTHING ELSE, a false return means the stack SILENTLY SUBSTITUTES a
+// default:
 //     Object_Name -> the literal string "undefined"
 //     Units       -> no-units (95)
 //     otherwise   -> a datatype zero-value
@@ -728,9 +729,20 @@ int main(int argc, char** argv) {
     // Show printf output immediately, even when stdout is piped to a file.
     setvbuf(stdout, NULL, _IONBF, 0);
 
+    // --- Load the CAS BACnet Stack -------------------------------------------
+    // Required in every link mode (source/static/DLL) before any other
+    // BACnetStack_* call - see CASBACnetStackAdapter.h. In DLL mode this is the
+    // step that actually resolves the symbols; skipping it there is a null-pointer
+    // call, not a silent no-op, so it comes before even --version (which calls
+    // BACnetStack_GetAPIMajorVersion() to print the linked stack's version).
+    if (!LoadBACnetFunctions()) {
+        fprintf(stderr, "Error: failed to load the CAS BACnet Stack: %s\n",
+                CASBACnetStackAdapter_LastError());
+        return 1;
+    }
+
     // --- Command line + version --------------------------------------------
-    // --help / --version print and exit, so handle them before we bind a socket
-    // or touch the stack.
+    // --help / --version print and exit, so handle them before we bind a socket.
     if (CASExampleHelper::HandleHelpAndVersionArgs(argc, argv, APP_NAME, APP_VERSION)) {
         return 0;
     }
@@ -842,10 +854,15 @@ int main(int argc, char** argv) {
     // Every BACnet device (Protocol_Revision 17+) must have at least one Network
     // Port object describing the port it talks on. This one is the BACnet/IP
     // application port; it is the lowest layer, so its reference port is "none".
-    if (!BACnetStack_AddNetworkPortObject(
+    // networkNumber 0 with quality "unknown" describes a local port that has not
+    // learned its network number - the right answer for a device that is not a
+    // router and has not been told one.
+    if (!BACnetStack_AddNetworkPortObjectWithNetworkNumber(
             g_deviceInstance, NETWORK_PORT_INSTANCE,
             NETWORK_PORT_NETWORK_TYPE_IPV4,
             NETWORK_PORT_PROTOCOL_LEVEL_BACNET_APPLICATION,
+            0,  // networkNumber: not configured
+            NETWORK_NUMBER_QUALITY_UNKNOWN,
             NETWORK_PORT_REFERENCE_PORT_NONE)) {
         printf("Error: Failed to add Network Port 1 (Vermilion).\n");
         return 1;
@@ -886,9 +903,8 @@ int main(int argc, char** argv) {
     // writing NULL relinquishes it, and the highest-priority non-null slot (or
     // Relinquish_Default) wins.
     //
-    // HONEST NOTE, because an earlier version of this comment was wrong and a
-    // reader would have found out the hard way: for ANALOG/BINARY/MULTI-STATE
-    // OUTPUT the three calls below are effectively NO-OPS. They reproduce the
+    // WORTH KNOWING BEFORE YOU COPY THIS: for ANALOG/BINARY/MULTI-STATE OUTPUT
+    // the three calls below are effectively NO-OPS. They reproduce the
     // stack's own defaults. Verified in the stack source:
     //   - Present_Value on an Analog Output already defaults to required AND
     //     writable (BACnetDBPropertyProfile.cpp: presentValue -> SetProperty(
@@ -908,11 +924,10 @@ int main(int argc, char** argv) {
     // enabled before it will treat the object as commandable. Omit these calls on
     // an Analog Value and it silently is not commandable.
     //
-    // Carry the INSTANCE alongside the type: this loop used to hardcode a literal
-    // 1 while every other line in the file used the named constants. On these
-    // output types that mismatch is benign (see above) - but it is exactly the
-    // drift that IS fatal on a Value type, and a reader copying it would inherit
-    // the bug without the benignity. Say what you mean.
+    // Carry the INSTANCE alongside the type rather than assuming instance 1. On
+    // these output types the distinction is benign (see above) - but it is fatal
+    // on a Value type, where the enable must land on the exact object you mean.
+    // Say what you mean, so the pattern stays correct when it is copied.
     struct CommandableObject { uint16_t type; uint32_t instance; };
     const CommandableObject outputs[] = {
         { OBJECT_TYPE_ANALOG_OUTPUT,      ANALOG_OUTPUT_INSTANCE },

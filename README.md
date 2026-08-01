@@ -15,7 +15,8 @@ start with; this is the **second**; [B-ASC](https://github.com/chipkin/BACnetPro
 
 > **Versions:** this document describes **example v1.1.0**, built and verified
 > against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
-> vendored `common/` helper at **v1.3.0**. Running the example prints all three.
+> vendored `common/` helper at **v1.5.1**. Running the example prints all three -
+> if what it prints disagrees with this line, trust the program and check `CHANGELOG.md`.
 
 This is the second example in the series. It builds directly on the
 [B-SS (Smart Sensor)](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP)
@@ -245,10 +246,40 @@ cmake --build build --config Release
 ```
 
 > **First build takes a few minutes** - it compiles the entire CAS BACnet Stack
-> (~600 source files) once. Incremental rebuilds after that are fast.
+> (~600 source files) once. Incremental rebuilds after that are fast. Build in
+> parallel to cut that down substantially:
+>
+> ```bash
+> cmake --build build --config Release --parallel
+> ```
 
 If your CAS BACnet Stack lives somewhere other than the bundled submodule, point
 CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
+
+### Link modes
+
+This example links the stack through the `CASBACnetStack::Adapter` CMake target
+(`submodules/cas-bacnet-stack/adapters/cpp`). `CAS_BACNET_STACK_LINK` picks how:
+
+```bash
+cmake -B build -S .                                   # SOURCE (default) - compiles the stack in
+cmake -B build -S . -D CAS_BACNET_STACK_LINK=STATIC    # link a prebuilt .lib/.a
+cmake -B build -S . -D CAS_BACNET_STACK_LINK=DLL       # load a prebuilt .dll/.so at runtime
+```
+
+**Application code is identical in every mode.** `main.cpp` and `common/` call
+`BACnetStack_AddDevice(...)` and friends by the exact export name; switching modes changes
+only the CMake flag, never a line of your code. All three modes require calling
+`LoadBACnetFunctions()` once at the top of `main()` before any other `BACnetStack_*` call - in
+`DLL` mode that is the step that binds the symbols, and in every mode it runs a version
+handshake. If it fails, `CASBACnetStackAdapter_LastError()` says why and the program exits
+with a message rather than crashing.
+
+`STATIC` and `DLL` each need their library built first (see
+`submodules/cas-bacnet-stack/projects/msvs/`), and `DLL` additionally needs it findable at
+runtime. `SOURCE` needs nothing extra, which is why it is the default and what the published
+release binaries are built with.
+
 
 ## Run
 
@@ -265,7 +296,7 @@ Expected output:
 ```
 BACnet B-SA (Smart Actuator) Example - C++ v1.1.0
 CAS BACnet Stack version: 6.0.0.0
-Common helper (common/) version: 1.3.0
+Common helper (common/) version: 1.5.1
 FYI: Listening for BACnet/IP on UDP port 47808.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
 FYI: Device 389002 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
@@ -336,14 +367,14 @@ Use a BACnet client such as the
 | Symptom | Cause / fix |
 |---------|-------------|
 | On start-up the app prints a wall of red `Error:` lines but the device works | **Expected — this is not your bug.** Two benign sources, both from the stack's own debug logging: (1) the device receives its **own** broadcast I-Am and logs a decode cascade (*"Services is not supported service=[0]"* … *"Failed to process the incoming NPDU"*) — any BACnet/IP device that listens for broadcasts hears itself; (2) a one-time *"UUID has not been set. A UUID must be set for the BACnetSC device to start."* — the stack starts a BACnet/SC datalink these IP-only examples never configure. It appears once and does not spam. On a healthy start-up roughly half the output is these lines. |
-| CMake error: *"CAS BACnet Stack source not found"* | Submodules not initialized. Run `git submodule update --init --recursive` (or pass `-D CAS_STACK_DIR=...`). |
+| CMake error: *"CAS BACnet Stack adapter not found under: ..."* | Submodules not initialized. Run `git submodule update --init --recursive` (or pass `-D CAS_STACK_DIR=...`). |
 | `CASBACnetStackDLL.h: No such file or directory` | Same - submodules not checked out. |
 | Windows: *"No CMAKE_CXX_COMPILER could be found"* | Install Visual Studio with the "Desktop development with C++" workload, then re-run from a fresh terminal. |
 | First build seems stuck for minutes | Normal - it's compiling ~600 stack files. Only the first build is slow. |
 | App prints *"Failed to bind UDP port 47808"* | Another BACnet program is already using 47808. Stop it, or run with `--port <n>`. |
 | WriteProperty to an output is rejected | Write to the **output** objects (Analog/Binary/Multi-State Output), not the inputs. Inputs are read-only sensors by design. |
 | Client sends Who-Is but sees no I-Am | Firewall is blocking UDP 47808, or the client and device are on different subnets (Who-Is is a broadcast). Allow the port; test on the same subnet first. |
-| Replies show an unexpected device instance or vendor | Another BACnet device is already running on this host/port (the socket uses `SO_REUSEADDR`, so several can share 47808). Stop the other device, or run this example on its own machine/IP. |
+| Replies show an unexpected device instance or vendor | Another BACnet device is already answering on this host/port. On Linux/macOS two processes can share the port and both reply; on Windows the example asks for `SO_EXCLUSIVEADDRUSE` (`common/SimpleUDP.cpp`) so this shows up as a bind failure instead. Stop the other device, or use `--port`. |
 
 ## Extending the example
 
