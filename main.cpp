@@ -73,7 +73,7 @@ using namespace CASBACnetStackExampleConstants;
 // 1. Example + device configuration
 // -----------------------------------------------------------------------------
 static const char* APP_NAME = "BACnet B-SA (Smart Actuator) Example - C++";
-static const char* APP_VERSION = "1.1.0";
+static const char* APP_VERSION = "1.2.0";
 
 // The device instance. BACnet requires this to be configurable, so it defaults
 // to 389002 (each profile example in the series has its own default, so several
@@ -213,16 +213,29 @@ static bool ReadPrioritySlot(const Commandable* c, uint32_t propertyIdentifier,
 // stack uses a separate callback. We return true (and fill *value) when we
 // recognise the (object, property) pair, and false otherwise.
 //
-// WHAT false ACTUALLY DOES - the most important paragraph in this file, and the
-// opposite of what most people assume. Returning false does NOT reliably produce
-// a BACnet error. The stack only errors for the handful of properties it refuses
-// to invent: Present_Value, Number_Of_States, Relinquish_Default, Local_Date,
-// Local_Time, and a Network Port's APDU_Length.
+// THE errorCode OUT-PARAMETER. Every Get callback ends with uint32_t* errorCode.
+// The stack PRESETS it to success (84) before the call, and reads it only if you
+// return false. That gives a declining callback two distinct meanings:
+//
+//   1. return false and LEAVE errorCode ALONE  -> "I have no opinion on this
+//      property." The stack falls back to its own handling (see below).
+//   2. return false and SET *errorCode         -> "This read fails, with THIS
+//      BACnet error." The client gets exactly that Error-PDU.
+//
+// WHAT false-WITHOUT-AN-ERROR-CODE ACTUALLY DOES - the most important paragraph
+// in this file, and the opposite of what most people assume. It does NOT
+// reliably produce a BACnet error. The stack only errors for the handful of
+// properties it refuses to invent: Present_Value, Number_Of_States,
+// Relinquish_Default, Local_Date, Local_Time, and a Network Port's APDU_Length.
 // For EVERYTHING ELSE, a false return means the stack SILENTLY SUBSTITUTES a
 // default:
 //     Object_Name -> the literal string "undefined"
 //     Units       -> no-units (95)
 //     otherwise   -> a datatype zero-value
+//
+// This example never has a case where it knows a read is wrong (no out-of-range
+// array index like B-SS's State_Text), so every callback below declines with
+// *errorCode* left alone throughout.
 //
 // ADDING AN OBJECT? READ THIS FIRST.
 // The consequence is the opposite of reassuring. These callbacks are not
@@ -249,7 +262,8 @@ static bool ReadPrioritySlot(const Commandable* c, uint32_t propertyIdentifier,
 bool GetPropertyReal(const uint32_t deviceInstance, const uint16_t objectType,
                      const uint32_t objectInstance, const uint32_t propertyIdentifier,
                      float* value, const bool useArrayIndex,
-                     const uint32_t propertyArrayIndex) {
+                     const uint32_t propertyArrayIndex, uint32_t* errorCode) {
+    (void)errorCode;   // see "THE errorCode OUT-PARAMETER" above: we decline without naming an error
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -295,7 +309,8 @@ bool GetPropertyReal(const uint32_t deviceInstance, const uint16_t objectType,
 bool GetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectType,
                            const uint32_t objectInstance, const uint32_t propertyIdentifier,
                            uint32_t* value, const bool useArrayIndex,
-                           const uint32_t propertyArrayIndex) {
+                           const uint32_t propertyArrayIndex, uint32_t* errorCode) {
+    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -364,7 +379,8 @@ bool GetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectT
 bool GetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t objectType,
                                 const uint32_t objectInstance, const uint32_t propertyIdentifier,
                                 uint32_t* value, const bool useArrayIndex,
-                                const uint32_t propertyArrayIndex) {
+                                const uint32_t propertyArrayIndex, uint32_t* errorCode) {
+    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -438,7 +454,8 @@ bool GetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t ob
 bool GetPropertyBool(const uint32_t deviceInstance, const uint16_t objectType,
                      const uint32_t objectInstance, const uint32_t propertyIdentifier,
                      bool* value, const bool useArrayIndex,
-                     const uint32_t propertyArrayIndex) {
+                     const uint32_t propertyArrayIndex, uint32_t* errorCode) {
+    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -477,9 +494,10 @@ bool GetPropertyOctetString(const uint32_t deviceInstance, const uint16_t object
                             const uint32_t objectInstance, const uint32_t propertyIdentifier,
                             uint8_t* value, uint32_t* valueElementCount,
                             const uint32_t maxElementCount, const bool useArrayIndex,
-                            const uint32_t propertyArrayIndex) {
+                            const uint32_t propertyArrayIndex, uint32_t* errorCode) {
     (void)useArrayIndex;
     (void)propertyArrayIndex;
+    (void)errorCode;
     if (deviceInstance != g_deviceInstance ||
         objectType != OBJECT_TYPE_NETWORK_PORT ||
         objectInstance != NETWORK_PORT_INSTANCE ||
@@ -527,7 +545,9 @@ bool GetPropertyCharString(const uint32_t deviceInstance, const uint16_t objectT
                            const uint32_t objectInstance, const uint32_t propertyIdentifier,
                            char* value, uint32_t* valueElementCount,
                            const uint32_t maxElementCount, uint8_t* encodingType,
-                           const bool useArrayIndex, const uint32_t propertyArrayIndex) {
+                           const bool useArrayIndex, const uint32_t propertyArrayIndex,
+                           uint32_t* errorCode) {
+    (void)errorCode;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -763,6 +783,10 @@ int main(int argc, char** argv) {
     }
 
     // --- Register callbacks -------------------------------------------------
+    // Tell the helper which Network Port object owns the socket it just bound.
+    // The stack identifies a link by its Network Port INSTANCE, so the transport
+    // callbacks (and the start-up I-Am) have to name the one added below.
+    CASExampleHelper::SetNetworkPortInstance(NETWORK_PORT_INSTANCE);
     // The transport + time callbacks are shared boilerplate.
     CASExampleHelper::RegisterCommonCallbacks();
     // The property callbacks are specific to this example.
@@ -857,7 +881,7 @@ int main(int argc, char** argv) {
     // networkNumber 0 with quality "unknown" describes a local port that has not
     // learned its network number - the right answer for a device that is not a
     // router and has not been told one.
-    if (!BACnetStack_AddNetworkPortObjectWithNetworkNumber(
+    if (!BACnetStack_AddNetworkPortObject(
             g_deviceInstance, NETWORK_PORT_INSTANCE,
             NETWORK_PORT_NETWORK_TYPE_IPV4,
             NETWORK_PORT_PROTOCOL_LEVEL_BACNET_APPLICATION,

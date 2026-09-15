@@ -5,13 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - unreleased
+## [1.2.0] - unreleased
 
 > Not tagged yet: `v1.0.0` is the only tag in this repository. `release.yml` publishes binaries on a `v*.*.*`
 > tag, so until that tag exists this section describes what is on the
 > branch, not what shipped.
 
 ### Changed
+
+- **CAS BACnet Stack re-pinned to `6.x` @ `abd4cee1` (reports 6.0.21)** and
+  **linked as a prebuilt STATIC library** (`-DCAS_BACNET_STACK_LINK=STATIC`,
+  built first by `tools/build-stack-static.sh`) instead of SOURCE. No DLL is
+  shipped or documented; SOURCE remains available as the adapter's fallback
+  mode only.
+- `common/` synced to **v2.1.0** (see `common/CHANGELOG.md`), byte-identical
+  with the rest of the series again.
+- Interface changes that reached this example at the new pin: every
+  `GetProperty*` callback (`Real`, `Enumerated`, `UnsignedInteger`,
+  `CharacterString`, `Bool`, `OctetString`) gains a trailing `uint32_t*
+  errorCode` out-parameter (declined without naming an error in every case
+  here - see the new comment block in `main.cpp`);
+  `BACnetStack_AddNetworkPortObjectWithNetworkNumber` was removed in favour of
+  `BACnetStack_AddNetworkPortObject` taking the same argument list; and
+  `CASExampleHelper::SetNetworkPortInstance(NETWORK_PORT_INSTANCE)` is now
+  called before `RegisterCommonCallbacks()` so the shared transport callbacks
+  know which Network Port object owns the bound socket.
+- **Added the `docs/objects.json`-driven "Objects and properties" reference
+  block**, the series-wide profile table block, and a `## Footprint` table
+  placeholder to the README (§7 of the series runbook); `CMakeLists.txt` and
+  the README's Build/Link-mode sections now describe the STATIC build only.
+- `.github/workflows/release.yml` replaced with the series' proven template
+  (windows-2022 + ubuntu-latest, static-library caching keyed on the stack
+  commit, `metrics-*.json` publishing on a version tag).
+- This is the repository canonical for **F-OUTPUTS**: AO 1 "Chartreuse", BO 1
+  "Fuchsia", MSO 1 "Indigo", the `Commandable` struct, and the
+  `SetPropertyWritable(Present_Value)` + Set/Null callback pattern other
+  profile examples in the series copy.
+
+### Changed (from the earlier CASBACnetStack::Adapter migration)
 
 - **Links the CAS BACnet Stack through the `CASBACnetStack::Adapter` CMake target
   instead of compiling its `source/*.cpp` into this project directly.** `main.cpp`
