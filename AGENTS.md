@@ -20,20 +20,27 @@ This repository is self-contained:
 - `main.cpp` - the example device.
 - `common/` - the shared helper (vendored).
 - `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack** as a git submodule
-  (private; compiled from source). After cloning, run
-  `git submodule update --init --recursive`.
+  (private; built into a static library by the stack's own project files).
+  After cloning, run `git submodule update --init --recursive`.
 
 ## Build
 
+This example links the CAS BACnet Stack as a prebuilt **STATIC** library - build
+the library once from the pinned submodule commit, then configure and build:
+
 ```bash
 git submodule update --init --recursive   # once, if not cloned with --recursive
-cmake -B build -S .
+tools/build-stack-static.sh BACnetProfileExample-B-SA-CPP   # from the series root
+cmake -B build -S . -DCAS_BACNET_STACK_LINK=STATIC
 cmake --build build --config Release
 ```
 
-The first build compiles the whole stack (~600 files) and takes a few minutes;
-later incremental builds are fast. Use `-D CAS_STACK_DIR=...` only if your stack
-lives outside the bundled submodule.
+The stack library build compiles the whole stack (~600 files) once and takes a
+few minutes; the example itself then builds in seconds, and later incremental
+rebuilds are fast. Use `-D CAS_STACK_DIR=...` only if your stack lives outside
+the bundled submodule. The adapter also offers a SOURCE mode (compiles the
+stack straight into the executable, no library build); this example builds and
+ships STATIC only.
 
 ## Run
 
