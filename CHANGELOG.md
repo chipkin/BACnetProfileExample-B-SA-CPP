@@ -5,11 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - unreleased
-
-> Not tagged yet: `v1.0.0` is the only tag in this repository. `release.yml` publishes binaries on a `v*.*.*`
-> tag, so until that tag exists this section describes what is on the
-> branch, not what shipped.
+## [1.2.0] - 2026-09-15
 
 ### Changed
 
@@ -120,4 +116,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow that builds Windows + Linux and publishes a release on
   a `vX.Y.Z` tag, with a smoke-test step before packaging.
 
+[1.2.0]: https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/releases/tag/v1.2.0
 [1.0.0]: https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/releases/tag/v1.0.0
