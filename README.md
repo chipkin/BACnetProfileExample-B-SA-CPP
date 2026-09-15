@@ -680,7 +680,10 @@ run (`metrics-windows.json` / `metrics-linux.json`), both built with
 <!-- METRICS -->
 | Platform | Binary | Size | SHA-256 (prefix) | Start-up to `ready` | Stack commit | Link mode | Compiler |
 |---|---|---|---|---|---|---|---|
-| - | - | not yet released | - | - | - | - | - |
+| Windows x64 (windows-2022) | `BACnetExampleBSA.exe` | 3,248,128 bytes (~3.1 MiB) | `04bb9852aa5829b1` | 58 ms | `abd4cee1` | STATIC | Visual Studio 17 2022 |
+| Linux x64 (ubuntu-latest) | `BACnetExampleBSA` | 44,024 bytes (~43 KiB) | `5ee7d8bd454a87eb` | 23 ms | `abd4cee1` | STATIC | `/usr/bin/c++` |
+
+From release [v1.2.0](https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/releases/tag/v1.2.0) (`metrics-windows.json` / `metrics-linux.json`).
 
 ## References
 
