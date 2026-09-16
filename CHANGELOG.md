@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Documentation restructured into README + TUTORIAL + PICS**, matching the
+  series pattern established in `BACnetProfileExample-B-SS-CPP`: `README.md` is
+  cut down to what this example is and how to build/run/verify it (711 -> 402
+  lines); the "Extending the example" recipes, the "Who serves what" table and
+  the Troubleshooting table moved to the new **TUTORIAL.md**; a new
+  **`docs/PICS.md`** (ANSI/ASHRAE 135 Annex A shape) replaces the README's old
+  "Objects and properties" section, with its generated table now covering the
+  **Device** object too (`docs/objects.json` gained a `Device` entry - the
+  generated tables previously omitted it). Regenerating with
+  `tools/gen-objects-properties.py BACnetProfileExample-B-SA-CPP` produces zero
+  ⚠ rows.
+- **Build switched from a prebuilt STATIC library to the adapter's default
+  SOURCE mode**: `cmake -B build -S .` + `cmake --build build --config Release`
+  is now the full, single-command-pair build on every platform, matching what
+  every other restructured example in the series documents. Dropped
+  `tools/build-stack-static.sh` and the `-DCAS_BACNET_STACK_LINK=STATIC` flag
+  from `README.md` and `AGENTS.md`; `.github/workflows/release.yml` no longer
+  builds or caches a static library, asserts `CAS_BACNET_STACK_LINK=SOURCE`
+  instead of `STATIC`, records `"link_mode": "SOURCE"` in the published
+  metrics, and now packages `TUTORIAL.md` and `docs/PICS.md` alongside the
+  binary. The `## Footprint` table still shows the v1.2.0 STATIC-build numbers;
+  the next tagged release refreshes them under the SOURCE build.
+- The `CHANGE ALL OF THIS BEFORE YOU SHIP` block in `main.cpp` now carries the
+  per-field guidance that used to live only in the README's "Before you ship"
+  table, including the `DEVICE_NAME` uniqueness warning, so the checklist can't
+  be skipped by someone who only reads the code.
+- Corrected the README's "Expected output" sample, which was stale: the real
+  start-up lines include a `(Network Port 1)` suffix
+  (`FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).` /
+  `TX ... (broadcast) (Network Port 1)`) that the previous sample omitted.
+
 ## [1.2.0] - 2026-09-15
 
 ### Changed
