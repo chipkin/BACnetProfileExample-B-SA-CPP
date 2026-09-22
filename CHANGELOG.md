@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.1] - unreleased
+
+### Fixed
+
+- **`Application_Software_Version` (12) and `Firmware_Revision` (44) were
+  hardcoded and stale.** `Application_Software_Version` now reads
+  `APP_VERSION` directly (one source of truth, can't drift from
+  `--version`'s own banner again). `Firmware_Revision` is now built at
+  runtime from the CAS BACnet Stack's own `BACnetStack_GetAPIMajorVersion()`/
+  `GetAPIMinorVersion()`/`GetAPIPatchVersion()`/`GetAPIBuildVersion()` (the
+  same 4 calls `common/CASExampleHelper.cpp`'s `PrintVersion()` already uses
+  for the startup banner), populated once right after `LoadBACnetFunctions()`
+  succeeds. Same fix as `BACnetProfileExample-B-SCHUB-CPP` v1.1.13, applied
+  series-wide after a real device read via BACnet Explorer found the stale
+  values.
 
 ### Changed
 
