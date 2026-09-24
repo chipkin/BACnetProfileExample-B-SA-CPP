@@ -65,7 +65,7 @@ hand control back by writing NULL. The application just stores the array (see th
 ## The device this example creates
 
 ```
-Device 389002  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
+Device 389002  "Chipkin Example B-SA"   (Vendor 389 - Chipkin Automation Systems)
     │
     ├── Analog Input  1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius; read-only)
     ├── Binary Input  1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active; read-only)
@@ -80,7 +80,7 @@ The three **input** objects (Bronze, Emerald, Hot Pink) are the shared minimum
 every example in this series carries. The three **output** objects (Chartreuse,
 Fuchsia, Indigo) are the B-SA additions; their `Present_Value` starts at the
 `Relinquish_Default` (no slots commanded yet). Object names follow this series'
-colour-naming convention (Device is always "Rainbow").
+colour-naming convention (Device is always "Chipkin Example B-SA").
 
 ## What this example supports
 
@@ -109,7 +109,7 @@ is the point of a profile example.
 
 | Object type | Instance | Name | Access |
 |-------------|:--------:|------|--------|
-| Device | 389002 | Rainbow | - |
+| Device | 389002 | Chipkin Example B-SA | - |
 | Analog Input | 1 | Bronze | read-only |
 | Binary Input | 1 | Emerald | read-only |
 | Multi-State Input | 1 | Hot Pink | read-only |
@@ -208,7 +208,7 @@ CAS BACnet Stack version: 6.0.21.0
 Common helper (common/) version: 2.5.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
 TX 21 bytes to 192.168.3.255:47808 (broadcast) (Network Port 1)
-FYI: Device 389002 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
+FYI: Device 389002 ("Chipkin Example B-SA") ready. Vendor ID 389. Press 'h' for help.
 ```
 
 The `TX` line is the start-up I-Am the device broadcasts to announce itself. It
@@ -257,10 +257,10 @@ Use a BACnet client such as the
 1. **Discover** - send a **Who-Is**. The device replies with **I-Am** from
    instance **389002** (vendor **389**). It also broadcasts an I-Am at start-up.
 2. **Browse the object model** - the device shows eight objects: the Device
-   (`Rainbow`), three inputs, three outputs, and the Network Port (`Vermilion`).
+   (`Chipkin Example B-SA`), three inputs, three outputs, and the Network Port (`Vermilion`).
    Reading the Device's `Object_List` returns all eight.
 3. **Read the Device** - ReadProperty `389002` -> `Object_Name` returns
-   `"Rainbow"`; `Protocol_Revision` returns `24`; `Description` returns the
+   `"Chipkin Example B-SA"`; `Protocol_Revision` returns `24`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns
    `21.5`; `Units` returns `degrees-Celsius`; `Object_Name` returns `"Bronze"`.
