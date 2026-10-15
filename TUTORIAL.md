@@ -183,7 +183,9 @@ rather than against "it looked fine in the explorer":
    (see [Keeping the PICS honest](#keeping-the-pics-honest) below). A ⚠ row is a
    required property nothing serves.
 2. Read **every** property listed for **every** object with a BACnet client, and
-   compare the value against the PICS. `"undefined"`, `no-units` and `0` are the
+   compare the value against the PICS. `tests/run_wire_tests.py` reads them all
+   and fails on any that does not return a value (README "Wire Tests") - keep it
+   passing, then check the values yourself. `"undefined"`, `no-units` and `0` are the
    three shapes a missed callback takes.
 3. Diff a new object of a type against the existing one of that type. Anything
    that differs and shouldn't is a callback that matched on instance.

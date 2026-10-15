@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - unreleased
+
+### Changed
+
+- **Stack Pin moved to `6.x` @ `64b2cfac5` (CAS BACnet Stack 6.0.23)** from
+  `6.x` @ `abd4cee1` (6.0.21), per the series rule that a pin moves to the latest
+  `6.x` whenever an example is updated. No `main.cpp` change was needed (only
+  APP_VERSION 1.2.2 -> 1.2.3 and a comment).
+- **`common/` 3.0.0 -> 3.3.0**, copied verbatim from B-SS-CPP `b640a81`. Additive
+  for this example: four new keys it does not handle (`k`, `o`, `f`, `p` are
+  ignored) and `HelperSendMessage` now sends a broadcast the stack hands it with
+  no address.
+- **Protocol_Revision 24 -> 30** (the stack's default at the new pin): README,
+  AGENTS.md, PICS, `main.cpp` comment.
+- **Segmentation is now supported** (`segmented-both`, `Max_Segments_Accepted`
+  16, `APDU_Segment_Timeout` 5000 ms): the stack's customer build compiles
+  segmentation in from this pin (stack #2992). `docs/PICS.md` section 5 updated;
+  section 11 regenerated.
+- README, PICS and version lines: stack 6.0.23, `common/` 3.3.0,
+  Protocol_Revision 30, example 1.2.3 (the README still said 1.2.0 and
+  `common/` 2.5.0). Sample output shows the `- Unconfirmed: I-Am` suffix
+  `common/` prints. Series profile table re-synced.
+
+### Fixed
+
+- **README misquoted Annex L.4.4.** It quoted the standard as "a simple
+  actuating device with very limited resources"; 135-2024 L.4.4 reads "A B-SA
+  is a simple control device with limited resources; it is intended for
+  specific applications."
+- **README said the outputs are "driven by a controller"** as if something acted
+  on the command. It now says what happens: the write lands in the
+  `Priority_Array`, the stack resolves `Present_Value`, a client reads it back,
+  and nothing in the example consumes the commanded value yet.
+
+### Added
+
+- **Wire Tests** (`tests/`, README "Wire Tests"): `tests/discovery_test.py`
+  (copied from B-SS-CPP `da3e96f`, object list adapted) does what a client's
+  discovery does - Who-Is, the Device's `Object_List` (control: exactly the eight
+  objects), then every object's `Property_List` and a ReadProperty of every listed
+  property - and fails on any Error, Reject, Abort or silence.
+  `tests/run_wire_tests.py` runs it; CI runs it on Linux after the smoke test.
+  Passes 14/14 (114 reads) on Windows and Linux at the new pin.
+- `wiretest/` 0.5.0, the series' shared Wiretest Harness, vendored verbatim
+  from B-BBMD-CPP.
+
 ## [1.2.2] - unreleased
 
 ### Changed

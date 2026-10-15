@@ -15,24 +15,31 @@ accepts **WriteProperty** to its commandable outputs, and is discoverable via
 - **[docs/PICS.md](docs/PICS.md)** - the Protocol Implementation Conformance
   Statement: every object, every property, and who answers it.
 
-> **Versions:** this document describes **example v1.2.0**, built and verified
-> against **CAS BACnet Stack 6.0.21** (`6.x` @ `abd4cee1`), at
-> **Protocol_Revision 24**, with the vendored `common/` helper at **v2.5.0**.
+> **Versions:** this document describes **example v1.2.3**, built and verified
+> against **CAS BACnet Stack 6.0.23** (`6.x` @ `64b2cfac5`), at
+> **Protocol_Revision 30**, with the vendored `common/` helper at **v3.3.0**.
 > Running the example prints all three - if what it prints disagrees with this
 > line, trust the program and check `CHANGELOG.md`.
 
 ## What is the B-SA (Smart Actuator) profile?
 
-**B-SA (BACnet Smart Actuator)**, defined in Annex L of ANSI/ASHRAE 135, is the
-next step up from the Smart Sensor - the standard describes it as *"a simple
-actuating device with very limited resources."* It is meant for inexpensive,
-fixed-function actuators (a valve, a damper, a relay, a setpoint) that need to
-**report state** and **be driven** by a controller.
+**B-SA (BACnet Smart Actuator)**, defined in Annex L.4.4 of ANSI/ASHRAE
+135-2024, is the next step up from the Smart Sensor - the standard describes it
+as *"a simple control device with limited resources; it is intended for
+specific applications."* In practice that is an inexpensive, fixed-function
+actuator (a valve, a damper, a relay, a setpoint) that **reports state** and
+**accepts commands** from a controller.
 
 A B-SA device answers **ReadProperty** and accepts **WriteProperty** to its
 commandable outputs - that is what distinguishes an actuator from a sensor. It
 does not have to support **alarming / event reporting**, **scheduling**, or
 **trending**, and this example implements none of them on purpose.
+
+**What this example does with a command today:** it stores the write in the
+output's `Priority_Array`, the stack resolves `Present_Value` from it, and a
+client reads the result back. Nothing else consumes the commanded value - there
+is no simulated valve, damper or relay behind the outputs yet, so the example
+shows the BACnet side of being commanded, not an actuator acting on it.
 
 **But it is still a full BACnet device.** Even the simplest profile must present
 the standard object model - a **Device** object, a **Network Port** object (every
@@ -40,7 +47,7 @@ device needs one), and its objects - and each object must expose all of its
 **required properties**. The CAS BACnet Stack generates most of those
 automatically (Object_Identifier, Object_Type, Status_Flags, Object_List,
 Protocol_*, ...); this example supplies the handful that are
-application-specific. The result is conformant for **Protocol_Revision 24**.
+application-specific. The result is conformant for **Protocol_Revision 30**.
 [docs/PICS.md](docs/PICS.md) lists every property and who answers it.
 
 ## Commandable outputs (the heart of B-SA)
@@ -146,6 +153,8 @@ This is a **self-contained** project. It ships:
 - `common/` - the shared helper (UDP, callbacks, CLI, keyboard) vendored in.
 - `CMakeLists.txt` - the build, the same on Windows, Linux, and macOS.
 - `docs/PICS.md` - the conformance statement.
+- `tests/` - the Wire Tests (see [Wire Tests](#wire-tests)), and `wiretest/`, the
+  series' shared Python harness they are written against (vendored, like `common/`).
 - `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack as a git submodule**
   (private; requires a license - see above). Its sources are compiled into the
   executable, so there is no library or DLL to build, ship, or install.
@@ -203,11 +212,11 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SA (Smart Actuator) Example - C++ v1.2.0
-CAS BACnet Stack version: 6.0.21.0
-Common helper (common/) version: 2.5.0
+BACnet B-SA (Smart Actuator) Example - C++ v1.2.3
+CAS BACnet Stack version: 6.0.23.0
+Common helper (common/) version: 3.3.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
-TX 21 bytes to 192.168.3.255:47808 (broadcast) (Network Port 1)
+TX 21 bytes to 192.168.3.255:47808 (broadcast) (Network Port 1) - Unconfirmed: I-Am
 FYI: Device 389002 ("Chipkin Example B-SA") ready. Vendor ID 389. Press 'h' for help.
 ```
 
@@ -260,7 +269,7 @@ Use a BACnet client such as the
    (`Chipkin Example B-SA`), three inputs, three outputs, and the Network Port (`Vermilion`).
    Reading the Device's `Object_List` returns all eight.
 3. **Read the Device** - ReadProperty `389002` -> `Object_Name` returns
-   `"Chipkin Example B-SA"`; `Protocol_Revision` returns `24`; `Description` returns the
+   `"Chipkin Example B-SA"`; `Protocol_Revision` returns `30`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns
    `21.5`; `Units` returns `degrees-Celsius`; `Object_Name` returns `"Bronze"`.
@@ -278,11 +287,29 @@ Use a BACnet client such as the
 For a property-by-property review against the conformance statement, see
 [TUTORIAL.md](TUTORIAL.md).
 
+## Wire Tests
+
+The discovery half of the checks above, automated: a Python BACnet client drives
+the running example over BACnet/IP from outside it, the way a client discovers a
+device - Who-Is, the Device's `Object_List`, then for every object its
+`Property_List` and a ReadProperty of every property it lists. Every read must
+come back as a value; an Error, Reject or Abort fails the run. Python 3 standard
+library only:
+
+```bash
+python3 tests/run_wire_tests.py --exe build/BACnetExampleBSA          # Linux/macOS
+python tests\run_wire_tests.py --exe build\Release\BACnetExampleBSA.exe   # Windows
+```
+
+It ends with `ALL WIRE TESTS PASSED` (exit 0). CI runs it on Linux after the
+smoke test. [tests/README.md](tests/README.md) says what each check proves. It
+does not yet test commanding the outputs (step 5 above).
+
 
 ## The BACnet profile example series
 
 <!-- PROFILE-TABLE:BEGIN (generated from cas-bacnet-stack-examples/docs/profile-table.md - do not edit here) -->
-The CAS BACnet Stack supports every standardized device profile in ASHRAE 135-2024 Annex L, and there is one example repository per profile. Pick the profile your device claims, then the language you build in. "Ask" means the example hasn't been built yet for that language - [contact Chipkin](https://store.chipkin.com/contact-us) if you need one.
+There is one example repository per standardized device profile in ASHRAE 135-2024 Annex L. An example marked ⛔ is blocked: the stack cannot yet perform that profile's function through its customer interface, and the example's README says what it does today. Pick the profile your device claims, then the language you build in. "Ask" means the example hasn't been built yet for that language - [contact Chipkin](https://store.chipkin.com/contact-us) if you need one.
 
 ### Controllers (Annex L.4)
 
@@ -327,7 +354,7 @@ The CAS BACnet Stack supports every standardized device profile in ASHRAE 135-20
 
 | Profile | C++ | Node.js | C# | Rust | Python | Go |
 |---|---|---|---|---|---|---|
-| **B-AS** Authorization Server | [B-AS-CPP](https://github.com/chipkin/BACnetProfileExample-B-AS-CPP) | Ask | Ask | Ask | Ask | Ask |
+| **B-AS** Authorization Server | [B-AS-CPP](https://github.com/chipkin/BACnetProfileExample-B-AS-CPP) ⛔ blocked on [stack #2043](https://github.com/chipkin/cas-bacnet-stack/issues/2043) | Ask | Ask | Ask | Ask | Ask |
 
 ### Miscellaneous (Annex L.7, combinable with any one family)
 
@@ -335,10 +362,10 @@ The CAS BACnet Stack supports every standardized device profile in ASHRAE 135-20
 |---|---|---|---|---|---|---|
 | **B-BBMD** Broadcast Management Device | [B-BBMD-CPP](https://github.com/chipkin/BACnetProfileExample-B-BBMD-CPP) | Ask | Ask | Ask | Ask | Ask |
 | **B-ACDC** Access Control Door Controller | [B-ACDC-CPP](https://github.com/chipkin/BACnetProfileExample-B-ACDC-CPP) | Ask | Ask | Ask | Ask | Ask |
-| **B-ACCR** Access Control Credential Reader | [B-ACCR-CPP](https://github.com/chipkin/BACnetProfileExample-B-ACCR-CPP) | Ask | Ask | Ask | Ask | Ask |
+| **B-ACCR** Access Control Credential Reader | [B-ACCR-CPP](https://github.com/chipkin/BACnetProfileExample-B-ACCR-CPP) ⛔ blocked on [stack #3934](https://github.com/chipkin/cas-bacnet-stack/issues/3934) | Ask | Ask | Ask | Ask | Ask |
 | **B-RTR** Router | [B-RTR-CPP](https://github.com/chipkin/BACnetProfileExample-B-RTR-CPP) | Ask | Ask | Ask | Ask | Ask |
 | **B-GW** Gateway | [B-GW-CPP](https://github.com/chipkin/BACnetProfileExample-B-GW-CPP) | Ask | Ask | Ask | Ask | Ask |
-| **B-DAP** Device Address Proxy | [B-DAP-CPP](https://github.com/chipkin/BACnetProfileExample-B-DAP-CPP) | Ask | Ask | Ask | Ask | Ask |
+| **B-DAP** Device Address Proxy | [B-DAP-CPP](https://github.com/chipkin/BACnetProfileExample-B-DAP-CPP) ⛔ blocked on [stack #2032](https://github.com/chipkin/cas-bacnet-stack/issues/2032) | Ask | Ask | Ask | Ask | Ask |
 | **B-SCHUB** BACnet/SC Hub | [B-SCHUB-CPP](https://github.com/chipkin/BACnetProfileExample-B-SCHUB-CPP) | Ask | Ask | Ask | Ask | Ask |
 | **B-GENERAL** General device (Annex L.8) | *(satisfied by every example above)* | — | — | — | — | — |
 
@@ -366,7 +393,7 @@ Client-side profiles.
 | **B-EWS** Elevator Workstation | planned | — | — | — | — | — |
 | **B-AEWS** Advanced Elevator Workstation | planned | — | — | — | — | — |
 
-🚧 = in progress. "Ask" = not yet built for that language; contact Chipkin if you need it. Profile definitions: ANSI/ASHRAE 135-2024 Annex L. BIBB definitions: Annex K. Get the stack: <https://store.chipkin.com/services/stacks/bacnet-stack>.
+🚧 = in progress. ⛔ = Blocked Example (blocked on the named stack gap). "Ask" = not yet built for that language; contact Chipkin if you need it. Profile definitions: ANSI/ASHRAE 135-2024 Annex L. BIBB definitions: Annex K. Get the stack: <https://store.chipkin.com/services/stacks/bacnet-stack>.
 <!-- PROFILE-TABLE:END -->
 
 ## References
