@@ -19,8 +19,41 @@ in this example is silent, and the section it lives in is
 The example is intentionally small so it's easy to change.
 
 **Change a value or name** - edit the constants / callbacks in `main.cpp` (e.g.
-the `Relinquish_Default` of an output in its `Commandable` initializer, or the
-`"Chartreuse"` string in `GetPropertyCharString`).
+the `Relinquish_Default` of an output in its `Commandable` initializer, the
+setpoint range `ANALOG_OUTPUT_MIN_PRES_VALUE` / `ANALOG_OUTPUT_MAX_PRES_VALUE`,
+or the `"Chartreuse"` string in `GetPropertyCharString`).
+
+**Drive real outputs instead of the Simulation** - section 1b of `main.cpp`
+(`ActuatorSimulationTick()`) is the only code that acts on a command. It reads
+each output's winning command with `ResolvedCommand()` - the highest-priority
+commanded slot, else `Relinquish_Default`, the same answer the stack gives for
+`Present_Value` (cl. 19.2) - and updates the feedback inputs. Replace its body
+with code that drives your valve / relay / drive from `ResolvedCommand()` and
+stores what your feedback sensors read into `g_analogInput1Value`,
+`g_binaryInput1Value` and `g_multiStateInput1Value`. Do it on a timer or another
+thread, never inside a `SetProperty*` callback: those run on the
+`BACnetStack_Tick()` thread, and a callback that waits for a motor delays every
+BACnet request. Delete `ACTUATOR_FAULT_FILE_VARIABLE` and its environment-variable
+code - it is a test hook, not something to ship.
+
+**Report an output fault** - `Reliability` is how a BACnet output says "my
+command is not reaching the equipment" (cl. 12.3.9). It is optional, so it takes
+two steps: enable it with `BACnetStack_SetPropertyEnabled(...
+PROPERTY_IDENTIFIER_RELIABILITY ...)` and serve it from `GetPropertyEnumerated`.
+The stack then builds the FAULT bit of `Status_Flags` from it by itself
+(cl. 12.3.7). Once enabled, **always** answer it: a callback that declines is not
+an error - the stack substitutes `0`, `no-fault-detected`, and the output reports
+itself healthy forever. Set it from your driver's own diagnostics: `no-output` (6)
+for nothing connected, `open-loop` (4) / `shorted-loop` (5) for a broken or
+shorted output circuit. Keep accepting commands while faulted - the
+`Priority_Array` is the controllers' intent, and the output obeys it once the
+fault clears.
+
+**Refuse a value the output cannot take** - return `false` from the
+`SetProperty*` callback with `*errorCode = ERROR_CODE_VALUE_OUT_OF_RANGE` and do
+not store it. If the range is an analog one, serve it as `Min_Pres_Value` /
+`Max_Pres_Value` (optional; enable them) so a client can read the limits it was
+refused by.
 
 **Change the device identity before you ship** - vendor ID, vendor name, model
 name, description, firmware revision and device name are all in the
@@ -158,7 +191,7 @@ property?" For Analog Input 1, the whole picture:
 | `Object_Type` | **stack** | generated |
 | `Object_List` | **stack** | generated (Device object) |
 | `Property_List` | **stack** | generated |
-| `Status_Flags` | **stack** | generated |
+| `Status_Flags` | **stack** | generated (on Analog Output 1, FAULT comes from its `Reliability`) |
 | `Event_State` | **stack**, sort of | no intrinsic alarming here, so nothing serves it — it reads `normal` only because `normal` is the enumeration's zero value and the stack substitutes a datatype default. Correct by coincidence, not design. |
 | `Out_Of_Service` | **you** | `GetPropertyBool` — matched on object **type only** |
 | `Present_Value` | **you** | `GetPropertyReal` |

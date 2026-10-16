@@ -5,7 +5,12 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 [CAS BACnet Stack](https://store.chipkin.com/services/stacks/bacnet-stack).
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests,
 accepts **WriteProperty** to its commandable outputs, and is discoverable via
-**Who-Is / I-Am**.
+**Who-Is / I-Am**. Each output **does what the winning command says**: a heating
+valve brings the temperature to the commanded setpoint, a relay follows its
+command, a drive runs at the commanded speed, and each reports back through an
+input. A disconnected valve shows up as a **fault** a client can read. The
+valve, relay and drive are a [Simulation](#the-actuator-simulation); everything
+BACnet does with them is real.
 
 **[Download a prebuilt binary](https://github.com/chipkin/BACnetProfileExample-B-SA-CPP/releases)**
 (Windows and Linux x64) - or build it yourself, see [Build](#build) below.
@@ -15,7 +20,7 @@ accepts **WriteProperty** to its commandable outputs, and is discoverable via
 - **[docs/PICS.md](docs/PICS.md)** - the Protocol Implementation Conformance
   Statement: every object, every property, and who answers it.
 
-> **Versions:** this document describes **example v1.2.3**, built and verified
+> **Versions:** this document describes **example v1.3.0**, built and verified
 > against **CAS BACnet Stack 6.0.23** (`6.x` @ `64b2cfac5`), at
 > **Protocol_Revision 30**, with the vendored `common/` helper at **v3.4.0**.
 > Running the example prints all three - if what it prints disagrees with this
@@ -35,11 +40,11 @@ commandable outputs - that is what distinguishes an actuator from a sensor. It
 does not have to support **alarming / event reporting**, **scheduling**, or
 **trending**, and this example implements none of them on purpose.
 
-**What this example does with a command today:** it stores the write in the
-output's `Priority_Array`, the stack resolves `Present_Value` from it, and a
-client reads the result back. Nothing else consumes the commanded value - there
-is no simulated valve, damper or relay behind the outputs yet, so the example
-shows the BACnet side of being commanded, not an actuator acting on it.
+**What this example does with a command:** it stores the write in the
+output's `Priority_Array`, the stack resolves `Present_Value` from it, and the
+actuator Simulation drives its (simulated) equipment from that same resolved
+value - so a client sees the command take effect on the matching input, not
+just read back.
 
 **But it is still a full BACnet device.** Even the simplest profile must present
 the standard object model - a **Device** object, a **Network Port** object (every
@@ -74,20 +79,82 @@ hand control back by writing NULL. The application just stores the array (see th
 ```
 Device 389002  "Chipkin Example B-SA"   (Vendor 389 - Chipkin Automation Systems)
     │
-    ├── Analog Input  1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius; read-only)
-    ├── Binary Input  1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active; read-only)
-    ├── Multi-State Input 1   "Hot Pink"    Present_Value  1       (state, 1..3; read-only)
-    ├── Analog Output 1       "Chartreuse"  Present_Value  20.0    (REAL setpoint; WRITABLE, commandable)
-    ├── Binary Output 1       "Fuchsia"     Present_Value  inactive  (0/1; WRITABLE, commandable)
-    ├── Multi-State Output 1  "Indigo"      Present_Value  1       (state, 1..3; WRITABLE, commandable)
+    ├── Analog Input  1       "Bronze"      Present_Value  21.5 -> follows the setpoint  (REAL, degrees Celsius; read-only)
+    ├── Binary Input  1       "Emerald"     Present_Value  follows Binary Output 1      (0 = inactive / 1 = active; read-only)
+    ├── Multi-State Input 1   "Hot Pink"    Present_Value  follows Multi-State Output 1 (state, 1..3; read-only)
+    ├── Analog Output 1       "Chartreuse"  Present_Value  20.0    (REAL setpoint, 10.0 .. 30.0 C; WRITABLE, commandable)
+    ├── Binary Output 1       "Fuchsia"     Present_Value  inactive  (0/1 relay; WRITABLE, commandable)
+    ├── Multi-State Output 1  "Indigo"      Present_Value  1       (speed, 1..3; WRITABLE, commandable)
     └── Network Port 1        "Vermilion"   the BACnet/IP port     (required on every device)
 ```
 
 The three **input** objects (Bronze, Emerald, Hot Pink) are the shared minimum
-every example in this series carries. The three **output** objects (Chartreuse,
-Fuchsia, Indigo) are the B-SA additions; their `Present_Value` starts at the
-`Relinquish_Default` (no slots commanded yet). Object names follow this series'
-colour-naming convention (Device is always "Chipkin Example B-SA").
+every example in this series carries; here each is the **feedback** of one
+output. The three **output** objects (Chartreuse, Fuchsia, Indigo) are the B-SA
+additions; their `Present_Value` starts at the `Relinquish_Default` (no slots
+commanded yet). Object names follow this series' colour-naming convention
+(Device is always "Chipkin Example B-SA").
+
+## The scenario: an actuator a controller commands
+
+What a B-SA is for, in one sentence, from Annex L.4.4 of ANSI/ASHRAE 135-2024:
+*"Ability to allow modification of some or all of its BACnet objects by another
+device"* - a controller (the **Peer** - any BACnet client, or the Python client
+in [`tests/`](tests/README.md)) commands an output, and the actuator does what
+the **winning** command says:
+
+1. The Peer writes Analog Output 1 `Present_Value` = `24.0` at priority 8. The
+   valve opens and the temperature (Analog Input 1) climbs 1.0 C a second until
+   it reads `24.0`.
+2. A second Peer writes `19.0` at priority 12. Priority 8 still wins:
+   `Present_Value` stays `24.0`, `Priority_Array[12]` holds `19.0`, and the
+   temperature does not move.
+3. The first Peer relinquishes priority 8 (writes NULL). Priority 12 wins now:
+   the temperature falls to `19.0`. Relinquish priority 12 and the output
+   returns to its `Relinquish_Default`, `20.0` - and so does the temperature.
+4. Binary Output 1 and Multi-State Output 1 work the same way; Binary Input 1
+   (the relay's feedback contact) and Multi-State Input 1 (the drive's speed)
+   follow the winning command within a second.
+5. **Failure Mode - a command it must refuse.** A setpoint outside
+   `Min_Pres_Value` .. `Max_Pres_Value` (10.0 .. 30.0), a Binary Output value
+   other than 0/1, or a Multi-State Output state outside 1..3 gets Error
+   `property` / `value-out-of-range`, and nothing moves. A WriteProperty to an
+   input gets Error `property` / `write-access-denied`.
+6. **Failure Mode - a disconnected actuator.** When the valve actuator is
+   disconnected, Analog Output 1 `Reliability` reads `no-output` (6, "No
+   physical device is connected to the Output object", clause 12.1) and the
+   **FAULT** bit of its `Status_Flags` is TRUE (clause 12.3.7). Commands are
+   still accepted into the `Priority_Array`, but the temperature does not move.
+   Reconnect it and `Reliability` returns to `no-fault-detected`, FAULT clears,
+   and the valve obeys the winning command.
+
+### The actuator Simulation
+
+A real smart actuator drives a valve motor, a relay coil and a variable-speed
+drive, and reads back what they did. This example has none of them, so it
+**simulates** them - non-BACnet scaffolding, outside the BACnet Surface, in
+section 1b of [`main.cpp`](main.cpp) (`ActuatorSimulationTick()`, called beside
+`BACnetStack_Tick()`). Once a second:
+
+- the **heating valve** moves the temperature (Analog Input 1) up to 1.0 C toward
+  the winning Analog Output 1 setpoint;
+- the **relay's feedback contact** (Binary Input 1) takes the winning Binary
+  Output 1 command;
+- the **drive's speed** (Multi-State Input 1) takes the winning Multi-State
+  Output 1 command.
+
+"Winning" is `ResolvedCommand()`: the highest-priority commanded slot, else
+`Relinquish_Default` - the same answer the stack gives for `Present_Value`
+(clause 19.2).
+
+The **disconnected valve** is a test-only hook, not a feature: if the
+environment variable `CAS_EXAMPLE_TEST_ACTUATOR_FAULT_FILE` names a file, the
+valve actuator counts as disconnected for as long as that file exists. The Wire
+Tests create and delete it. Nothing on the network can disconnect it.
+
+To port the example to hardware, replace `ActuatorSimulationTick()` with code
+that drives your outputs from `ResolvedCommand()` and samples your feedback
+inputs, and set `Reliability` from your output driver's own diagnostics.
 
 ## What this example supports
 
@@ -212,7 +279,7 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SA (Smart Actuator) Example - C++ v1.2.3
+BACnet B-SA (Smart Actuator) Example - C++ v1.3.0
 CAS BACnet Stack version: 6.0.23.0
 Common helper (common/) version: 3.4.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
@@ -225,7 +292,7 @@ goes to the **local subnet broadcast** address (here `192.168.3.255`, computed
 from the Network Port's interface), not the global `255.255.255.255`. As clients
 talk to the device you'll see `RX ... bytes from ...` and `TX ... bytes to ...`
 lines showing the traffic; a WriteProperty to an output also prints a line such
-as `WriteProperty: Analog Output 1 (Chartreuse) <- 42.50 @ priority 8`.
+as `WriteProperty: Analog Output 1 (Chartreuse) <- 24.00 @ priority 8`.
 
 The device listens on UDP **47808** (BACnet/IP). Allow that port through your
 firewall. To use a different port, pass `--port` (see below).
@@ -252,11 +319,12 @@ While the example runs, these keys are available:
 |-----|--------|
 | `h` | Show the version information and this command list. |
 | `q` | Quit. |
-| up arrow | Increase Analog Input 1 (`Bronze`) by 1.1. |
-| down arrow | Decrease Analog Input 1 (`Bronze`) by 1.1. |
+| up arrow | Disturb the simulated temperature (Analog Input 1, `Bronze`) up by 1.1. |
+| down arrow | Disturb the simulated temperature (Analog Input 1, `Bronze`) down by 1.1. |
 
-The up/down keys change the live `Present_Value` of the analog input, so a client
-re-reading it sees the new value.
+The up/down keys push the simulated temperature off its setpoint; within a few
+seconds the valve brings it back, and a client re-reading Analog Input 1 sees
+both.
 
 ## Verify
 
@@ -272,15 +340,18 @@ Use a BACnet client such as the
    `"Chipkin Example B-SA"`; `Protocol_Revision` returns `30`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns
-   `21.5`; `Units` returns `degrees-Celsius`; `Object_Name` returns `"Bronze"`.
+   `20.0` once the valve has settled at the default setpoint (it starts at
+   `21.5`); `Units` returns `degrees-Celsius`; `Object_Name` returns `"Bronze"`.
 5. **Command an output (the B-SA test)** - ReadProperty Analog Output `1`
    -> `Present_Value` returns `20.0` (its `Relinquish_Default`, nothing commanded
-   yet). Now **WriteProperty** Analog Output `1` `Present_Value` = `42.5` at
-   priority `8`. Re-read `Present_Value`: it returns `42.5`, and
-   `Priority_Array[8]` shows `42.5`. **WriteProperty** `Present_Value` = `NULL`
-   at priority `8` to relinquish; `Present_Value` returns to `20.0`. Repeat for
-   Binary Output `1` (`"Fuchsia"`, active/inactive) and Multi-State Output `1`
-   (`"Indigo"`, state 1..3).
+   yet). Now **WriteProperty** Analog Output `1` `Present_Value` = `24.0` at
+   priority `8`. Re-read `Present_Value`: it returns `24.0`, and
+   `Priority_Array[8]` shows `24.0`. Read Analog Input `1` for a few seconds: it
+   climbs to `24.0`. **WriteProperty** `Present_Value` = `NULL` at priority `8`
+   to relinquish; `Present_Value` returns to `20.0`, and so does Analog Input `1`.
+   Repeat for Binary Output `1` (`"Fuchsia"`, active/inactive - watch Binary
+   Input `1`) and Multi-State Output `1` (`"Indigo"`, state 1..3 - watch
+   Multi-State Input `1`).
 6. **Confirm the profile boundary** - a **WriteProperty** to a read-only *input*
    (e.g. Analog Input 1) is rejected. That is correct: inputs are sensors.
 
@@ -289,12 +360,16 @@ For a property-by-property review against the conformance statement, see
 
 ## Wire Tests
 
-The discovery half of the checks above, automated: a Python BACnet client drives
-the running example over BACnet/IP from outside it, the way a client discovers a
-device - Who-Is, the Device's `Object_List`, then for every object its
-`Property_List` and a ReadProperty of every property it lists. Every read must
-come back as a value; an Error, Reject or Abort fails the run. Python 3 standard
-library only:
+The checks above, automated: a Python BACnet client (the Peer) drives the running
+example over BACnet/IP from outside it. Python 3 standard library only.
+
+| Script | What it proves |
+|---|---|
+| `discovery_test.py` | Who-Is, the Device's `Object_List`, then for every object its `Property_List` and a ReadProperty of every property it lists - every read comes back as a value. |
+| `commanding_test.py` | **The Profile Function.** Commands each output at two priorities; `Present_Value`, `Priority_Array` and `Current_Command_Priority` follow the winning command, and the feedback input follows it too - through a lower-priority write that must change nothing, two relinquishes, and back to `Relinquish_Default`. Fails against an example that only stores commands. |
+| `failure_modes_test.py` | **The Failure Modes.** Disconnects the valve actuator: `Reliability` `no-output`, `Status_Flags` FAULT, a command accepted but not obeyed; reconnects it: all clear, the valve obeys. Then out-of-range writes (`value-out-of-range`, nothing moves) and a write to an input (`write-access-denied`). |
+
+Run them all:
 
 ```bash
 python3 tests/run_wire_tests.py --exe build/BACnetExampleBSA          # Linux/macOS
@@ -302,8 +377,7 @@ python tests\run_wire_tests.py --exe build\Release\BACnetExampleBSA.exe   # Wind
 ```
 
 It ends with `ALL WIRE TESTS PASSED` (exit 0). CI runs it on Linux after the
-smoke test. [tests/README.md](tests/README.md) says what each check proves. It
-does not yet test commanding the outputs (step 5 above).
+smoke test. [tests/README.md](tests/README.md) says what each check proves.
 
 
 ## The BACnet profile example series

@@ -41,7 +41,7 @@
       "enabled": [],
       "writable": [],
       "accepted": ["Event_State"],
-      "note": "REAL, degrees Celsius; starts at 21.5"
+      "note": "REAL, degrees Celsius; the temperature the simulated heating valve produces - it moves up to 1.0 C a second toward the winning Analog Output 1 setpoint (starts at 21.5)"
     },
     {
       "type": "Binary Input",
@@ -51,7 +51,7 @@
       "enabled": [],
       "writable": [],
       "accepted": ["Event_State"],
-      "note": "starts inactive"
+      "note": "the simulated relay's feedback contact - takes the winning Binary Output 1 command within a second (starts inactive)"
     },
     {
       "type": "Multi-state Input",
@@ -61,17 +61,17 @@
       "enabled": ["State_Text"],
       "writable": [],
       "accepted": ["Event_State"],
-      "note": "state 1 of 3: On, Off, Auto"
+      "note": "3 states: On, Off, Auto; the simulated drive's speed - takes the winning Multi-State Output 1 command within a second"
     },
     {
       "type": "Analog Output",
       "instance": 1,
       "name": "Chartreuse",
-      "app": ["Object_Name", "Units", "Out_Of_Service", "Relinquish_Default"],
-      "enabled": [],
+      "app": ["Object_Name", "Units", "Out_Of_Service", "Relinquish_Default", "Min_Pres_Value", "Max_Pres_Value", "Reliability"],
+      "enabled": ["Min_Pres_Value", "Max_Pres_Value", "Reliability"],
       "writable": ["Present_Value"],
       "accepted": ["Event_State"],
-      "note": "REAL setpoint, commandable via a 16-slot Priority_Array; Relinquish_Default 20.0; degrees Celsius"
+      "note": "REAL setpoint, degrees Celsius, commandable via a 16-slot Priority_Array; Relinquish_Default 20.0; accepts 10.0 .. 30.0 (Min_Pres_Value / Max_Pres_Value), else value-out-of-range. Reliability reads no-fault-detected, or no-output while the simulated valve actuator is disconnected; the stack derives Status_Flags FAULT from it"
     },
     {
       "type": "Binary Output",
@@ -81,7 +81,7 @@
       "enabled": [],
       "writable": ["Present_Value"],
       "accepted": ["Event_State"],
-      "note": "active/inactive, commandable via a 16-slot Priority_Array; Relinquish_Default inactive"
+      "note": "active/inactive relay, commandable via a 16-slot Priority_Array; Relinquish_Default inactive; a value other than 0/1 gets value-out-of-range"
     },
     {
       "type": "Multi-state Output",
@@ -91,7 +91,7 @@
       "enabled": [],
       "writable": ["Present_Value"],
       "accepted": ["Event_State"],
-      "note": "state 1..3, commandable via a 16-slot Priority_Array; Relinquish_Default state 1"
+      "note": "speed state 1..3, commandable via a 16-slot Priority_Array; Relinquish_Default state 1; a state outside 1..3 gets value-out-of-range"
     },
     {
       "type": "Network Port",

@@ -62,7 +62,7 @@ commands above.
 .\build\Release\BACnetExampleBSA.exe [--port 47808] [--deviceID 389002]   # Windows
 ```
 
-Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1.
+Interactive keys while running: `h` help, `q` quit, up/down disturb the simulated temperature (Analog Input 1).
 
 ## Conventions
 
@@ -73,6 +73,11 @@ Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1
   `Relinquish_Default` in the app (the `Commandable` struct); let the stack
   resolve `Present_Value`. Writes land via the `SetProperty*` callbacks (value)
   and `SetPropertyNull` (relinquish).
+- The outputs act through the **Simulation** in `main.cpp` section 1b
+  (`ActuatorSimulationTick()`), driven by `ResolvedCommand()`; it is outside the
+  BACnet Surface and labelled so in the README. Its disconnected-valve hook is
+  test-only (`CAS_EXAMPLE_TEST_ACTUATOR_FAULT_FILE`, an environment variable) -
+  never a command-line option or a menu key.
 - Match the surrounding code style: `const`-correct parameters, check every stack
   return value, keep `main.cpp` linear and well-commented.
 - **Never edit `common/` in this repo alone** - it is a vendored copy shared by
@@ -82,9 +87,12 @@ Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1
 
 ## How to verify a change
 
-The Wire Tests in `tests/` automate the discovery half of this (README "Wire
-Tests"): `python3 tests/run_wire_tests.py --exe build/BACnetExampleBSA`. Run them
-after any change. Beyond them, verification is behavioural:
+The Wire Tests in `tests/` automate this (README "Wire Tests"): discovery,
+commanding at two priorities with the feedback following the winner, and the
+Failure Modes - `python3 tests/run_wire_tests.py --exe build/BACnetExampleBSA`.
+Run them after any change. A new check must fail with its feature removed
+(tests/README.md has the mutation table). Beyond them, verification is
+behavioural:
 
 1. Build, then run one instance on a clear UDP port.
 2. With a BACnet client (e.g. the CAS BACnet Explorer), send **Who-Is** and

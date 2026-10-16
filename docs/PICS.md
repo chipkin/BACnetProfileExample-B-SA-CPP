@@ -18,17 +18,20 @@ see [README.md](../README.md).
 | **Vendor Identifier** | 389 |
 | **Product Name** | CAS BACnet Stack Example - B-SA |
 | **Product Model Number** | CAS BACnet Stack Example - B-SA |
-| **Application Software Version** | 1.2.3 |
+| **Application Software Version** | 1.3.0 |
 | **Firmware Revision** | 6.0.23.0 (the CAS BACnet Stack version) |
 | **BACnet Protocol Version** | 1 |
 | **BACnet Protocol Revision** | 30 |
 
 **Product Description:** a minimal BACnet/IP actuating device built on the CAS
-BACnet Stack. It presents three read-only sensor objects (Analog Input, Binary
-Input, Multi-State Input) and three commandable output objects (Analog Output,
-Binary Output, Multi-State Output), answers ReadProperty for every required
-property of every object, accepts WriteProperty to the outputs' `Present_Value`,
-and is discoverable by Who-Is / I-Am and Who-Has / I-Have. It is a tutorial for
+BACnet Stack. It presents three commandable output objects (Analog Output,
+Binary Output, Multi-State Output) and three read-only input objects (Analog
+Input, Binary Input, Multi-State Input) that report what a simulated valve,
+relay and drive did with the winning command. It answers ReadProperty for every
+required property of every object, accepts WriteProperty to the outputs'
+`Present_Value` (refusing values out of range), reports a disconnected valve
+through Analog Output 1's Reliability and the FAULT bit of Status_Flags, and is
+discoverable by Who-Is / I-Am and Who-Has / I-Have. It is a tutorial for
 implementers of the B-SA profile.
 
 ## 2. BACnet standardized device profile (Annex L)
@@ -94,7 +97,7 @@ any object is writable.
 | Analog Input | 1 | Bronze | - |
 | Binary Input | 1 | Emerald | - |
 | Multi-State Input | 1 | Hot Pink | State_Text |
-| Analog Output | 1 | Chartreuse | - |
+| Analog Output | 1 | Chartreuse | Min_Pres_Value, Max_Pres_Value, Reliability |
 | Binary Output | 1 | Fuchsia | - |
 | Multi-State Output | 1 | Indigo | - |
 | Network Port | 1 | Vermilion | - |
@@ -163,7 +166,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Database_Revision | Unsigned | stack default, accepted (Generic UnsignedInteger default: `0`) | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Analog Input 1 "Bronze" - REAL, degrees Celsius; starts at 21.5
+### Analog Input 1 "Bronze" - REAL, degrees Celsius; the temperature the simulated heating valve produces - it moves up to 1.0 C a second toward the winning Analog Output 1 setpoint (starts at 21.5)
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -177,7 +180,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Units | BACnetEngineeringUnits | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Binary Input 1 "Emerald" - starts inactive
+### Binary Input 1 "Emerald" - the simulated relay's feedback contact - takes the winning Binary Output 1 command within a second (starts inactive)
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -191,7 +194,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Polarity | BACnetPolarity | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Multi-state Input 1 "Hot Pink" - state 1 of 3: On, Off, Auto
+### Multi-state Input 1 "Hot Pink" - 3 states: On, Off, Auto; the simulated drive's speed - takes the winning Multi-State Output 1 command within a second
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -206,7 +209,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | State_Text *(optional, enabled)* | BACnetARRAY[N] of CharacterString | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Analog Output 1 "Chartreuse" - REAL setpoint, commandable via a 16-slot Priority_Array; Relinquish_Default 20.0; degrees Celsius
+### Analog Output 1 "Chartreuse" - REAL setpoint, degrees Celsius, commandable via a 16-slot Priority_Array; Relinquish_Default 20.0; accepts 10.0 .. 30.0 (Min_Pres_Value / Max_Pres_Value), else value-out-of-range. Reliability reads no-fault-detected, or no-output while the simulated valve actuator is disconnected; the stack derives Status_Flags FAULT from it
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -216,14 +219,17 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Present_Value | Real | stack | yes |
 | Status_Flags | BACnetStatusFlags | stack | no |
 | Event_State | BACnetEventState | stack default, accepted (Generic Enumerated default: `0`) | no |
+| Reliability *(optional, enabled)* | BACnetReliability | app | no |
 | Out_Of_Service | Boolean | app | no |
 | Units | BACnetEngineeringUnits | app | no |
+| Min_Pres_Value *(optional, enabled)* | Real | app | no |
+| Max_Pres_Value *(optional, enabled)* | Real | app | no |
 | Priority_Array | BACnetARRAY[16] of BACnetOptionalReal | stack | no |
 | Relinquish_Default | Real | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 | Current_Command_Priority | BACnetOptionalUnsigned | stack | no |
 
-### Binary Output 1 "Fuchsia" - active/inactive, commandable via a 16-slot Priority_Array; Relinquish_Default inactive
+### Binary Output 1 "Fuchsia" - active/inactive relay, commandable via a 16-slot Priority_Array; Relinquish_Default inactive; a value other than 0/1 gets value-out-of-range
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -240,7 +246,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 | Current_Command_Priority | BACnetOptionalUnsigned | stack | no |
 
-### Multi-state Output 1 "Indigo" - state 1..3, commandable via a 16-slot Priority_Array; Relinquish_Default state 1
+### Multi-state Output 1 "Indigo" - speed state 1..3, commandable via a 16-slot Priority_Array; Relinquish_Default state 1; a state outside 1..3 gets value-out-of-range
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|

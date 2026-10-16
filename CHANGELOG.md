@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - unreleased
+
+Profile-functional (series bar): the actuator now performs the B-SA Profile
+Function - ANSI/ASHRAE 135-2024 Annex L.4.4, "Ability to allow modification of
+some or all of its BACnet objects by another device" - by doing what the winning
+command says, and shows Failure Modes. The BACnet Surface is unchanged (DS-RP-B,
+DS-WP-B, DM-DDB-B, DM-DOB-B; the same eight objects).
+
+### Added
+
+- **Actuator Simulation** (`main.cpp` section 1b, `ActuatorSimulationTick()`,
+  labelled Simulation in the README): once a second a heating valve moves the
+  temperature (Analog Input 1) up to 1.0 C toward the winning Analog Output 1
+  setpoint; Binary Input 1 (the relay's feedback contact) and Multi-State Input 1
+  (the drive's speed) take the winning Binary / Multi-State Output 1 command.
+  `ResolvedCommand()` gives the winning command (cl. 19.2). Before, commands were
+  stored in the Priority_Array and nothing used them; the inputs were constants.
+- **Analog Output 1 `Min_Pres_Value` 10.0 / `Max_Pres_Value` 30.0** (optional,
+  now enabled); a setpoint outside them gets Error `property` /
+  `value-out-of-range` and is not stored. Before, any REAL was accepted.
+- **Analog Output 1 `Reliability`** (optional, now enabled): `no-fault-detected`,
+  or `no-output` while the simulated valve actuator is disconnected; the stack
+  derives the FAULT bit of `Status_Flags` from it (cl. 12.3.7, 12.3.9). Commands
+  are still accepted while disconnected and obeyed once reconnected. Disconnected
+  only through a test-only hook: the environment variable
+  `CAS_EXAMPLE_TEST_ACTUATOR_FAULT_FILE` names a file, and the valve is
+  disconnected while that file exists.
+- **Wire Tests** `tests/commanding_test.py` (each output at two priorities: the
+  lower-priority command changes nothing, relinquishing hands over, the feedback
+  input follows the winner) and `tests/failure_modes_test.py` (disconnected and
+  reconnected valve; out-of-range writes to all three outputs; a write to an
+  input gets `write-access-denied`), with `tests/bsa_setup.py`. Every check is
+  mutation-verified (tests/README.md).
+
+### Changed
+
+- The up/down keys disturb the simulated temperature; the valve brings it back.
+- README: the scenario, the Simulation, the Wire Test table, Verify with the
+  feedback; TUTORIAL: driving real outputs, reporting an output fault, refusing
+  a value; PICS: the Analog Output optional properties, the objects' notes,
+  Application_Software_Version 1.3.0.
+
 ## [1.2.3] - unreleased
 
 ### Changed
