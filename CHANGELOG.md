@@ -46,6 +46,7 @@ DS-WP-B, DM-DDB-B, DM-DOB-B; the same eight objects).
   feedback; TUTORIAL: driving real outputs, reporting an output fault, refusing
   a value; PICS: the Analog Output optional properties, the objects' notes,
   Application_Software_Version 1.3.0.
+- Wire Tests use the shared `wiretest/` 0.7.0: the Peer is `wiretest.Client(retries=3, timeout=0.6)` (the short timeout with visible `[RETRY]`s is now a Client option).
 
 ## [1.2.3] - unreleased
 
