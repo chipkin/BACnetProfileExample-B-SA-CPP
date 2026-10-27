@@ -20,9 +20,9 @@ BACnet does with them is real.
 - **[docs/PICS.md](docs/PICS.md)** - the Protocol Implementation Conformance
   Statement: every object, every property, and who answers it.
 
-> **Versions:** this document describes **example v1.3.0**, built and verified
-> against **CAS BACnet Stack 6.0.23** (`6.x` @ `64b2cfac5`), at
-> **Protocol_Revision 30**, with the vendored `common/` helper at **v3.4.0**.
+> **Versions:** this document describes **example v1.4.0**, built and verified
+> against **CAS BACnet Stack 6.0.23** (`6.x` @ `69b6249f`), at
+> **Protocol_Revision 30**, with the vendored `common/` helper at **v3.5.0**.
 > Running the example prints all three - if what it prints disagrees with this
 > line, trust the program and check `CHANGELOG.md`.
 
@@ -279,9 +279,9 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SA (Smart Actuator) Example - C++ v1.3.0
+BACnet B-SA (Smart Actuator) Example - C++ v1.4.0
 CAS BACnet Stack version: 6.0.23.0
-Common helper (common/) version: 3.4.0
+Common helper (common/) version: 3.5.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
 TX 21 bytes to 192.168.3.255:47808 (broadcast) (Network Port 1) - Unconfirmed: I-Am
 FYI: Device 389002 ("Chipkin Example B-SA") ready. Vendor ID 389. Press 'h' for help.
@@ -308,6 +308,8 @@ firewall. To use a different port, pass `--port` (see below).
 |--------|---------|---------|
 | `--port <n>` | `47808` | UDP port to listen on (BACnet/IP). |
 | `--deviceID <n>` | `389002` | The device's BACnet instance number (BACnet requires this to be configurable). |
+| `--deviceName <text>` | `Chipkin Example B-SA` | The Device object's `Object_Name`, 1..255 bytes, no control characters. It must be unique across the BACnet internetwork, so give every unit its own (BACnet requires it to be configurable, like the instance). An invalid value prints a warning and keeps the default. |
+| `--xml` | off | Print every received and sent BACnet message as an indented XML block instead of a one-line summary (very verbose; for protocol debugging). |
 | `--help`, `-h` | - | Show usage and exit. |
 | `--version` | - | Print the example, stack, and `common/` helper versions, then exit. |
 
@@ -366,6 +368,7 @@ example over BACnet/IP from outside it. Python 3 standard library only.
 | Script | What it proves |
 |---|---|
 | `discovery_test.py` | Who-Is, the Device's `Object_List`, then for every object its `Property_List` and a ReadProperty of every property it lists - every read comes back as a value. |
+| `configuration_test.py` | The Device's identity is configurable at start-up: with `--deviceID 389902 --deviceName "Chipkin Example B-SA Unit 2"`, Who-Is, ReadProperty `Object_Name` and Who-Has by name all see the configured instance and name (and 389002 is gone); without them, the defaults; an empty or 256-byte name keeps the default with a warning, a 255-byte one is kept whole. `--help` lists exactly the options the example reads, and `--xml` prints XML. |
 | `commanding_test.py` | **The Profile Function.** Commands each output at two priorities; `Present_Value`, `Priority_Array` and `Current_Command_Priority` follow the winning command, and the feedback input follows it too - through a lower-priority write that must change nothing, two relinquishes, and back to `Relinquish_Default`. Fails against an example that only stores commands. |
 | `failure_modes_test.py` | **The Failure Modes.** Disconnects the valve actuator: `Reliability` `no-output`, `Status_Flags` FAULT, a command accepted but not obeyed; reconnects it: all clear, the valve obeys. Then out-of-range writes (`value-out-of-range`, nothing moves) and a write to an input (`write-access-denied`). |
 
