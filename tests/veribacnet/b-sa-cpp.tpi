@@ -141,7 +141,7 @@ object-name: "Chipkin Example B-SA"
 object-type: DEVICE
 apdu-segment-timeout: 5000
 apdu-timeout: 10000
-application-software-version: "1.4.0"
+application-software-version: "1.4.1"
 description: "Chipkin CAS BACnet Stack example - B-SA (Smart Actuator) profile. Demonstrates DS-RP-B + DS-WP-B: ReadProperty and WriteProperty with read-only sensor inputs and commandable outputs."
 device-address-binding: ?
 firmware-revision: "6.0.23.0"

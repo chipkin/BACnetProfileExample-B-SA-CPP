@@ -96,7 +96,7 @@ using namespace CASBACnetStackExampleConstants;
 // 1. Example + device configuration
 // -----------------------------------------------------------------------------
 static const char* APP_NAME = "BACnet B-SA (Smart Actuator) Example - C++";
-static const char* APP_VERSION = "1.4.0";
+static const char* APP_VERSION = "1.4.1";
 
 // The device instance. BACnet requires this to be configurable, so it defaults
 // to 389002 (each profile example in the series has its own default, so several

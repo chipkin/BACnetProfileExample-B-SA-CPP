@@ -1,6 +1,6 @@
 # TODO
 
-Open items for this example at v1.4.0 (CAS BACnet Stack `6.x` @ `69b6249f`).
+Open items for this example at v1.4.1 (CAS BACnet Stack `6.x` @ `1e7dffe2b`).
 
 ## Known defects
 
